@@ -22,6 +22,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <emage/emage.h>
+#include <emage/pb/main.pb-c.h>
+
 #include "emsim.h"
 
 #define LOG_MSG(x, ...) 		LOG_TRACE(x, ##__VA_ARGS__)
@@ -1090,17 +1093,17 @@ int msg_RAN_report(u32 agent_id, u32 mod_id, EmageMsg ** ret)
 	 * Tenant scheduler:
 	 */
 
-	rs->n_tenant_schedulers = sim_ran.nof_ts;
+	rs->n_tenant_schedulers_dl = sim_ran.nof_ts;
 
 	/* Skip on 0. */
-	if(!rs->n_tenant_schedulers) {
+	if(!rs->n_tenant_schedulers_dl) {
 		goto ue;
 	}
 
-	rs->tenant_schedulers = malloc(
-		sizeof(char *) * rs->n_tenant_schedulers);
+	rs->tenant_schedulers_dl = malloc(
+		sizeof(char *) * rs->n_tenant_schedulers_dl);
 
-	if(!rs->tenant_schedulers) {
+	if(!rs->tenant_schedulers_dl) {
 		goto err;
 	}
 
@@ -1110,31 +1113,32 @@ int msg_RAN_report(u32 agent_id, u32 mod_id, EmageMsg ** ret)
 			continue;
 		}
 
-		rs->tenant_schedulers[i] = malloc(
+		rs->tenant_schedulers_dl[i] = malloc(
 			sizeof(char) * strlen(sim_ran.t_sched[i]));
 
-		if(!rs->tenant_schedulers[i]) {
+		if(!rs->tenant_schedulers_dl[i]) {
 			goto err;
 		}
 
 		/* Copy that algorithm name. */
-		strcpy(rs->tenant_schedulers[i], sim_ran.t_sched[i]);
+		strcpy(rs->tenant_schedulers_dl[i], sim_ran.t_sched[i]);
 	}
 
 	/*
 	 * UE scheduler:
 	 */
 ue:
-	rs->n_ue_schedulers = sim_ran.nof_ts;
+	rs->n_ue_schedulers_dl = sim_ran.nof_ts;
 
 	/* Skip on 0. */
-	if(!rs->n_ue_schedulers) {
+	if(!rs->n_ue_schedulers_dl) {
 		goto cells;
 	}
 
-	rs->ue_schedulers = malloc(sizeof(char *) * rs->n_ue_schedulers);
+	rs->ue_schedulers_dl =
+		malloc(sizeof(char *) * rs->n_ue_schedulers_dl);
 
-	if(!rs->n_ue_schedulers) {
+	if(!rs->ue_schedulers_dl) {
 		goto err;
 	}
 
@@ -1144,15 +1148,15 @@ ue:
 			continue;
 		}
 
-		rs->ue_schedulers[i] = malloc(
+		rs->ue_schedulers_dl[i] = malloc(
 			sizeof(char) * strlen(sim_ran.u_sched[i]));
 
-		if(!rs->ue_schedulers[i]) {
+		if(!rs->ue_schedulers_dl[i]) {
 			goto err;
 		}
 
 		/* Copy that algorithm name. */
-		strcpy(rs->ue_schedulers[i], sim_ran.u_sched[i]);
+		strcpy(rs->ue_schedulers_dl[i], sim_ran.u_sched[i]);
 	}
 
 	/*
@@ -1217,14 +1221,24 @@ err:
 			free(rs->rbs_alloc_dl);
 		}
 
-		if(rs->tenant_schedulers) {
-			for(i = 0; i < rs->n_tenant_schedulers; i++) {
-				if(rs->tenant_schedulers[i]) {
-					free(rs->tenant_schedulers[i]);
+		if(rs->tenant_schedulers_dl) {
+			for(i = 0; i < rs->n_tenant_schedulers_dl; i++) {
+				if(rs->tenant_schedulers_dl[i]) {
+					free(rs->tenant_schedulers_dl[i]);
 				}
 			}
 
-			free(rs->tenant_schedulers);
+			free(rs->tenant_schedulers_dl);
+		}
+
+		if(rs->ue_schedulers_dl) {
+			for(i = 0; i < rs->n_ue_schedulers_dl; i++) {
+				if(rs->ue_schedulers_dl[i]) {
+					free(rs->ue_schedulers_dl[i]);
+				}
+			}
+
+			free(rs->ue_schedulers_dl);
 		}
 
 		if(rs->cell) {
