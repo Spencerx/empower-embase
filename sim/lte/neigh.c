@@ -93,7 +93,10 @@ int neigh_rem(u32 id)
 			LOG_NEIGH("eNB %u removed.\n", sim_neighs[i].id);
 
 			/* Decrement the number of known eNBs. */
-			sim_nof_neigh--;
+			if(sim_nof_neigh > 0) {
+				sim_nof_neigh--;
+			}
+
 			memset(&sim_neighs[i], 0, sizeof(em_neigh));
 
 			return SUCCESS;
