@@ -206,6 +206,11 @@ u32 ue_compute(void)
 {
 	EmageMsg * msg = 0;
 
+	/* Do not compute on disconnected controller. */
+	if(!em_is_connected(sim_ID)) {
+		return SUCCESS;
+	}
+
 	/*
 	 * If the UEs simulated are marked as dirty, the system will report to
 	 * the controller in the case a trigger has been setup.
