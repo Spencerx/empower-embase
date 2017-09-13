@@ -21,7 +21,9 @@
 
 #include "emsim.h"
 
-#define LOG_WRAP(x, ...) 	LOG_TRACE(x, ##__VA_ARGS__)
+#define LOG_WRAP(x, ...)        LOG_TRACE(x, ##__VA_ARGS__)
+
+#define LOG_WRAP_SMALL_BUF      64
 
 /******************************************************************************
  * Globals used all around the simulator:                                     *
@@ -55,6 +57,36 @@ int wrap_release()
 	return 0;
 }
 
+int wrap_enb_setup_request()
+{
+	char     buf[LOG_WRAP_SMALL_BUF];
+	uint16_t cells[1];
+	int      blen;
+
+	LOG_TRACE("eNB setup request received!\n");
+
+	cells[0] = sim_phy.pci;
+
+	blen = epf_single_ecap_rep(
+		buf, LOG_WRAP_SMALL_BUF,
+		sim_ID,
+		sim_phy.pci,
+		0,
+		EP_ECAP_UE_REPORT,
+		(uint16_t *)cells,
+		1);
+
+	if(blen < 0) {
+		LOG_TRACE("Cannot format eNB setup reply!\n");
+		return -1;
+	}
+
+	em_send(sim_ID, buf, blen);
+
+	return 0;
+}
+
+#if 0
 int wrap_cell_stats(
 	EmageMsg * request, EmageMsg ** reply, unsigned int trigger_id)
 {
@@ -328,15 +360,18 @@ int wrap_cell_report(EmageMsg * request, EmageMsg ** reply)
 
 	return 0;
 }
-
+#endif
 /* Operations offered by this technology abstraction module. */
 struct em_agent_ops sim_ops = {
 	.init                   = wrap_init,
 	.release                = wrap_release,
+	.enb_setup_request      = wrap_enb_setup_request,
+#if 0
 	.UEs_ID_report          = wrap_UEs_ID_report,
 	.cell_statistics_report = wrap_cell_stats,
 	.RRC_measurements       = wrap_rrc_meas,
 	.RRC_meas_conf          = wrap_rrc_conf,
 	.handover_request       = wrap_handover,
 	.eNB_cells_report       = wrap_cell_report,
+#endif
 };

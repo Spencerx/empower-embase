@@ -16,7 +16,7 @@
 
 CC=gcc
 
-LIBS=-lemagent -lemproto -lpthread -lprotobuf-c -lncurses
+LIBS=-lemagent -lemproto -lpthread -lncurses
 INCLUDES=-I$(SIM_DIR)/include
 
 all:

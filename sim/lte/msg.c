@@ -23,7 +23,7 @@
 #include <string.h>
 
 #include <emage/emage.h>
-#include <emage/pb/main.pb-c.h>
+#include <emage/emproto.h>
 
 #include "emsim.h"
 
@@ -32,7 +32,7 @@
 /******************************************************************************
  * Private procedures:                                                        *
  ******************************************************************************/
-
+#if 0
 /* Free a single RbsAllocPerCell message. */
 void msg_free_rbsapc(RbsAllocPerCell * r)
 {
@@ -66,11 +66,11 @@ void msg_free_rbsapc(RbsAllocPerCell * r)
 out:
 	free(r);
 }
-
+#endif
 /******************************************************************************
  * Public accessible procedures:                                              *
  ******************************************************************************/
-
+#if 0
 int msg_cell_stats(u32 agent_id, u32 mod_id, EmageMsg ** ret)
 {
 	EmageMsg * msg            = malloc(sizeof(EmageMsg));
@@ -1276,3 +1276,4 @@ err:
 
 	return ERR_MSG_RRE_MEM;
 }
+#endif

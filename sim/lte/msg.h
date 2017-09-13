@@ -20,7 +20,7 @@
 #ifndef __EM_SIM_MSG_H
 #define __EM_SIM_MSG_H
 
-#include <emage/pb/main.pb-c.h>
+#include <emage/emproto.h>
 
 /******************************************************************************
  * Globals used all around the simulator:                                     *
@@ -30,6 +30,7 @@
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
+#if 0
 /* Creates a report of the cell statistics of PRB utilization.
  *
  * Returns 0 on success, otherwise a negative error code.
@@ -77,5 +78,6 @@ int msg_cell_report_fail(u32 agent_id, u32 mod_id, EmageMsg ** ret);
  * Returns 0 on success, otherwise a negative error code.
  */
 int msg_RAN_report(u32 agent_id, u32 mod_id, EmageMsg ** ret);
+#endif
 
 #endif

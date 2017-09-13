@@ -154,7 +154,8 @@ int main(int argc, char ** argv) {
 	}
 
 	/* Start the UI mechanisms. */
-	iface_init();
+	//iface_init();
+	iface_alive = 1;
 
 	/* Wait for the interface to come down... */
 	do {

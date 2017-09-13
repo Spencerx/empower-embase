@@ -21,6 +21,7 @@
 #define __EM_SIM_WRAP_H
 
 #include <emage/emage.h>
+#include <emage/emproto.h>
 
 /******************************************************************************
  * Globals used all around the simulator:                                     *

@@ -90,8 +90,6 @@ u32 phy_compute()
 	u32 dl = phy_compute_DL();
 	u32 ul = phy_compute_UL();
 
-	EmageMsg * msg = 0;
-
 	if(dl != sim_phy.DL_used) {
 		sim_phy.DL_used = dl;
 		sim_phy_dirty = 1;
@@ -104,17 +102,20 @@ u32 phy_compute()
 
 	if(sim_phy_dirty) {
 		/* Operates only if the trigger is defined. */
-		if(sim_cell_stats_trigger) {
-			/* Check and remove the trigger eventually. */
-			if(!em_has_trigger(
-				sim_ID,
-				sim_cell_stats_trigger,
-				EM_CELL_STATS_TRIGGER)) {
+		if(!sim_cell_stats_trigger) {
+			goto no_dirt;
+		}
 
-				sim_cell_stats_trigger = 0;
-				return SUCCESS;
-			}
+		/* Check and remove the trigger eventually. */
+		if(!em_has_trigger(
+			sim_ID,
+			sim_cell_stats_trigger,
+			EM_CELL_STATS_TRIGGER)) {
 
+			sim_cell_stats_trigger = 0;
+			return SUCCESS;
+		}
+#if 0
 			if(msg_cell_stats(sim_ID, sim_cell_stat_mod, &msg)) {
 				return ERR_UNKNOWN;
 			}
@@ -123,9 +124,8 @@ u32 phy_compute()
 				emage_msg__free_unpacked(msg, 0);
 				return ERR_UNKNOWN;
 			}
-		}
-
-		/* If everything is fine, clean the dirty flag. */
+#endif
+no_dirt:
 		sim_phy_dirty = 0;
 	}
 

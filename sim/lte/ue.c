@@ -159,8 +159,6 @@ u32 ue_compute_measurements()
 	int i;
 	int j;
 
-	EmageMsg * msg = 0;
-
 	for(i = 0; i < UE_MAX; i++) {
 		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
 			continue;
@@ -184,7 +182,7 @@ u32 ue_compute_measurements()
 			if(!sim_ues[i].meas[j].dirty) {
 				continue;
 			}
-
+#if 0
 			if(msg_RRC_meas(sim_ID, i, j, &msg)) {
 				continue;
 			}
@@ -193,7 +191,7 @@ u32 ue_compute_measurements()
 				emage_msg__free_unpacked(msg, 0);
 				continue;
 			}
-
+#endif
 			/* Keep it dirty if some error occurs. */
 			sim_ues[i].meas[j].dirty = 0;
 		}
@@ -204,8 +202,6 @@ u32 ue_compute_measurements()
 
 u32 ue_compute(void)
 {
-	EmageMsg * msg = 0;
-
 	/* Do not compute on disconnected controller. */
 	if(!em_is_connected(sim_ID)) {
 		return SUCCESS;
@@ -221,7 +217,7 @@ u32 ue_compute(void)
 			sim_ID,
 			sim_UE_rep_trigger,
 			EM_UEs_ID_REPORT_TRIGGER)) {
-
+#if 0
 			if(msg_UE_report(sim_ID, sim_UE_rep_mod, &msg)) {
 				return -1;
 			}
@@ -230,11 +226,11 @@ u32 ue_compute(void)
 				/* Free allocated memory on error. */
 				emage_msg__free_unpacked(msg, 0);
 			}
+#endif
 		} else {
 			LOG_UE("UEs report trigger %u not present.\n",
 				sim_UE_rep_trigger);
 		}
-
 
 		/* No dirty anymore.
 		 * Failures keeps the flag dirty.
