@@ -31,11 +31,22 @@
 #include "wrap.h"
 #include "x2.h"
 
+#define SMALL_BUF      64
+#define MEDIUM_BUF     2048
+#define BIG_BUF        16384
+
 /******************************************************************************
  * Globals used all around the simulator:                                     *
  ******************************************************************************/
 
 /* Id of the agent associated with the simulator. */
 extern u32 sim_ID;
+
+/******************************************************************************
+ * Globals utilities:                                                         *
+ ******************************************************************************/
+
+/* Mask all signal so they wont distub the calling thread */
+void util_mask_all_signals();
 
 #endif

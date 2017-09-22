@@ -34,6 +34,17 @@
 
 /* Id of the agent associated with the simulator. */
 u32 sim_ID = 0;
+/* Headless start? */
+u32 sim_hl = 0;
+
+void util_mask_all_signals()
+{
+	sigset_t set;
+
+	/* Don't let us get disturbed by any signal */
+	sigfillset(&set);
+	pthread_sigmask(SIG_SETMASK, &set, NULL);
+}
 
 /******************************************************************************
  * Arguments handling:                                                        *
@@ -57,7 +68,9 @@ void help(void)
 "--dl_prb <num>\n"
 "    Number of PRB used in the Downlink.\n"
 "--ul_prb <num>\n"
-"    Number of PRB used in the Uplink.\n");
+"    Number of PRB used in the Uplink.\n"
+"--hl\n"
+"    Headless, run without UI\n");
 }
 
 void parse_args(int argc, char ** argv)
@@ -75,11 +88,13 @@ void parse_args(int argc, char ** argv)
 		}
 
 		if(strcmp(argv[i], "--freq") == 0) {
-			sim_phy.earfcn = atoi(argv[i + 1]);
+			sim_phy.DL_earfcn = atoi(argv[i + 1]);
+			sim_phy.UL_earfcn = sim_phy.DL_earfcn + 18000;
+
 			i = i + 1;
 
-			LOG_MAIN("Cell EARFCN frequency set to %d.\n",
-				sim_phy.earfcn);
+			LOG_MAIN("Cell EARFCN frequency set to DL:%d, UL:%d.\n",
+				sim_phy.DL_earfcn, sim_phy.UL_earfcn);
 
 			continue;
 		}
@@ -110,6 +125,14 @@ void parse_args(int argc, char ** argv)
 
 			continue;
 		}
+
+		if(strcmp(argv[i], "--hl") == 0) {
+			sim_hl = 1;
+
+			LOG_MAIN("Will not start the UI\n");
+
+			continue;
+		}
 	}
 }
 
@@ -118,6 +141,8 @@ void parse_args(int argc, char ** argv)
  ******************************************************************************/
 
 int main(int argc, char ** argv) {
+	//util_mask_all_signals();
+
 	/* No arguments means show the help. */
 	if(argc <= 1) {
 		help();
@@ -153,9 +178,12 @@ int main(int argc, char ** argv) {
 		goto out;
 	}
 
-	/* Start the UI mechanisms. */
-	//iface_init();
-	iface_alive = 1;
+	if(!sim_hl) {
+		/* Start the UI mechanisms. */
+		iface_init();
+	} else {
+		iface_alive = 1;
+	}
 
 	/* Wait for the interface to come down... */
 	do {

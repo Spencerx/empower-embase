@@ -30,6 +30,9 @@
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
+/* Fill the protocol structure with proper UE data */
+int msg_fill_ue_details(ep_ue_details * ues);
+
 #if 0
 /* Creates a report of the cell statistics of PRB utilization.
  *

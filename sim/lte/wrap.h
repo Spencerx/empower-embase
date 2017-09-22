@@ -28,11 +28,11 @@
  ******************************************************************************/
 
 /* UE report triggering variables. */
-extern u32 sim_UE_rep_trigger;
+extern s32 sim_UE_rep_trigger;
 extern u32 sim_UE_rep_mod;
 
 /* Cell statistic triggering variables. */
-extern u32 sim_cell_stats_trigger;
+extern s32 sim_cell_stats_trigger;
 extern u32 sim_cell_stat_mod;
 
 /* Operations offered by this technology abstraction module. */

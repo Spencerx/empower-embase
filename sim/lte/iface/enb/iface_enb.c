@@ -61,8 +61,8 @@ u32 iface_enb_uenm_mask = 0;
  * Main UI stuff:
  */
 
-u32 iface_enb_sel = 0;
-u32 iface_enb_sel_idx = 0;
+s32 iface_enb_sel = 1;
+s32 iface_enb_sel_idx = 0;
 
 /******************************************************************************
  * UE measurements management for neighbor cells.                             *
@@ -637,13 +637,13 @@ int iface_enb_handle_input(int key)
 	switch(key) {
 	/* Move up between eNBs. */
 	case KEY_UP:
-		if(iface_enb_sel > 0) {
+		if(iface_enb_sel > 1) {
 			iface_enb_sel--;
 		}
 		break;
 	/* Move down between eNBs. */
 	case KEY_DOWN:
-		if(iface_enb_sel + 1 < sim_nof_neigh) {
+		if(iface_enb_sel < sim_nof_neigh) {
 			iface_enb_sel++;
 		}
 		break;
@@ -654,6 +654,10 @@ int iface_enb_handle_input(int key)
 	/* Remove the selected eNB. */
 	case 'r':
 		neigh_rem(sim_neighs[iface_enb_sel_idx].id);
+
+		if(iface_enb_sel > 1) {
+			iface_enb_sel--;
+		}
 		break;
 	case 'h':
 		iface_enb_ho_mask = 1;

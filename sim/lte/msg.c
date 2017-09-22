@@ -70,6 +70,32 @@ out:
 /******************************************************************************
  * Public accessible procedures:                                              *
  ******************************************************************************/
+
+int msg_fill_ue_details(ep_ue_details * ues)
+{
+	int i;
+	int j;
+
+	for(i = 0, j = 0; i < UE_MAX; i++) {
+		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+			continue;
+		}
+
+		if(j >= EP_UE_REPORT_MAX_UES) {
+			break;
+		}
+
+		ues[i].pci  = sim_phy.pci;
+		ues[i].rnti = sim_ues[j].rnti;
+		ues[i].plmn = sim_ues[j].plmn;
+		ues[i].imsi = sim_ues[j].imsi;
+
+		j++;
+	}
+
+	return j;
+}
+
 #if 0
 int msg_cell_stats(u32 agent_id, u32 mod_id, EmageMsg ** ret)
 {

@@ -15,9 +15,16 @@
 
 /*
  * Empower Agent simulator interface module.
+ *
+ * NOTE on ncurses:
+ *
+ *      Be careful not to close file descriptors 0, 1 or 2, otherwise ncurses
+ *      will start to behave very bad. For example, closing the fd 0 will cause
+ *      getchar() and all related procedure to fail very bad.
  */
 
 #include <pthread.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -277,9 +284,16 @@ int iface_handle_input(int key)
 	case KEY_F(3):
 		iface_scr_select = IFACE_SCREEN_ENB;
 		break;
-	case KEY_DOWN:
-		break;
-	case KEY_UP:
+	case KEY_F(9):
+		iface_alive = 0;
+		endwin();
+		printf("Indexes:\n");
+		printf("   ue_sel: %d\n", iface_ue_sel);
+		printf("   ue_sel_idx: %d\n", iface_ue_sel_idx);
+		printf("   enb_sel: %d\n", iface_enb_sel);
+		printf("   enb_sel_idx: %d\n", iface_enb_sel_idx);
+
+		exit(0);
 		break;
 	default:
 		break;
@@ -331,11 +345,9 @@ void * iface_loop(void * args)
 		clear();
 		getmaxyx(stdscr, iface_row, iface_col);
 
-		/* Draw and sleep. */
 		iface_draw();
 		refresh();
 
-		/* Get user inputs and handle them. */
 		key = getch();
 		iface_handle_input(key);
 	}
@@ -345,7 +357,7 @@ void * iface_loop(void * args)
 	/* End ncurses, so we can properly print something. */
 	endwin();
 
-	return SUCCESS;
+	return 0;
 }
 
 /*

@@ -36,8 +36,11 @@ u32 phy_init()
 	int i;
 	int j;
 
-	sim_phy.DL_prb = 25;
-	sim_phy.UL_prb = 25;
+	sim_phy.pci       = 1;
+	sim_phy.DL_earfcn = 1750;
+	sim_phy.UL_earfcn = sim_phy.DL_earfcn + 18000;
+	sim_phy.DL_prb    = 25;
+	sim_phy.UL_prb    = 25;
 
 	for(i = 0; i < sim_phy.DL_prb; i++) {
 		for(j = 0; j < PHY_SUBFRAME_X_FRAME; j++) {
@@ -90,6 +93,11 @@ u32 phy_compute()
 	u32 dl = phy_compute_DL();
 	u32 ul = phy_compute_UL();
 
+	/* Do not compute on disconnected controller. */
+	if(!em_is_connected(sim_ID)) {
+		return SUCCESS;
+	}
+
 	if(dl != sim_phy.DL_used) {
 		sim_phy.DL_used = dl;
 		sim_phy_dirty = 1;
@@ -105,7 +113,7 @@ u32 phy_compute()
 		if(!sim_cell_stats_trigger) {
 			goto no_dirt;
 		}
-
+#if 0
 		/* Check and remove the trigger eventually. */
 		if(!em_has_trigger(
 			sim_ID,
@@ -125,8 +133,10 @@ u32 phy_compute()
 				return ERR_UNKNOWN;
 			}
 #endif
+#endif
 no_dirt:
 		sim_phy_dirty = 0;
+
 	}
 
 	return SUCCESS;

@@ -23,17 +23,17 @@
 
 #define LOG_WRAP(x, ...)        LOG_TRACE(x, ##__VA_ARGS__)
 
-#define LOG_WRAP_SMALL_BUF      64
-
 /******************************************************************************
  * Globals used all around the simulator:                                     *
  ******************************************************************************/
 
-u32 sim_UE_rep_trigger = 0;
-u32 sim_UE_rep_mod     = 0;
+s32 sim_UE_rep_trigger     = 0;
+u32 sim_UE_rep_mod         = 0;
 
-u32 sim_cell_stats_trigger = 0;
+s32 sim_cell_stats_trigger = 0;
 u32 sim_cell_stat_mod      = 0;
+
+char * sim_ue_buf;
 
 /******************************************************************************
  * Callback implementation.                                                   *
@@ -59,16 +59,16 @@ int wrap_release()
 
 int wrap_enb_setup_request()
 {
-	char     buf[LOG_WRAP_SMALL_BUF];
+	char     buf[SMALL_BUF] = {0};
 	uint16_t cells[1];
 	int      blen;
 
-	LOG_TRACE("eNB setup request received!\n");
+	LOG_WRAP("eNB setup request received!\n");
 
 	cells[0] = sim_phy.pci;
 
 	blen = epf_single_ecap_rep(
-		buf, LOG_WRAP_SMALL_BUF,
+		buf, SMALL_BUF,
 		sim_ID,
 		sim_phy.pci,
 		0,
@@ -77,11 +77,58 @@ int wrap_enb_setup_request()
 		1);
 
 	if(blen < 0) {
-		LOG_TRACE("Cannot format eNB setup reply!\n");
+		LOG_WRAP("Cannot format eNB setup reply!\n");
 		return -1;
 	}
 
 	em_send(sim_ID, buf, blen);
+
+	return 0;
+}
+
+int wrap_cell_setup_request(int cell)
+{
+	char        buf[SMALL_BUF] = {0};
+	int         blen;
+
+	ep_cell_det celld;
+
+	LOG_WRAP("Cell %d setup request received!\n", cell);
+
+	if(sim_phy.pci != cell) {
+		LOG_WRAP("We do not own such cell!\n");
+	}
+
+	celld.DL_earfcn = sim_phy.DL_earfcn;
+	celld.UL_earfcn = sim_phy.UL_earfcn;
+	celld.DL_prbs   = (uint8_t)sim_phy.DL_prb;
+	celld.UL_prbs   = (uint8_t)sim_phy.UL_prb;
+
+	blen = epf_single_ccap_rep(
+		buf, SMALL_BUF,
+		sim_ID,
+		sim_phy.pci,
+		0,
+		EP_CCAP_NOTHING,
+		&celld);
+
+	if(blen < 0) {
+		LOG_WRAP("Cannot format cell setup reply!\n");
+		return -1;
+	}
+
+	em_send(sim_ID, buf, blen);
+
+	return 0;
+}
+
+int wrap_ue_report(unsigned int mod, int trig_id, int trig_type)
+{
+	LOG_WRAP("eNB %d UE report (%d, %d)\n", sim_ID, trig_id, trig_type);
+
+	sim_UE_rep_trigger = trig_id;
+	sim_UE_rep_mod     = mod;
+	sim_ue_dirty       = 1;
 
 	return 0;
 }
@@ -366,6 +413,8 @@ struct em_agent_ops sim_ops = {
 	.init                   = wrap_init,
 	.release                = wrap_release,
 	.enb_setup_request      = wrap_enb_setup_request,
+	.cell_setup_request     = wrap_cell_setup_request,
+	.ue_report              = wrap_ue_report,
 #if 0
 	.UEs_ID_report          = wrap_UEs_ID_report,
 	.cell_statistics_report = wrap_cell_stats,

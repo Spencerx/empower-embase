@@ -24,11 +24,13 @@
 #include "../../emsim.h"
 #include "../iface_priv.h"
 
-u32 iface_ue_sel = 0;
-u32 iface_ue_sel_idx = 0;
+/* This is the graphical representation of the selected UE */
+s32 iface_ue_sel = 1;
+/* The index to the data is updated during UI drawing */
+s32 iface_ue_sel_idx = 0;
 
-u32 iface_ue_add_mask= 0;
-u32 iface_ue_add_sel = 0;
+s32 iface_ue_add_mask= 0;
+s32 iface_ue_add_sel = 0;
 
 #define RNTI_MAX 5
 u32 iface_ue_add_rnti_idx = 0;
@@ -241,13 +243,13 @@ int iface_ue_handle_input(int key)
 	switch(key) {
 	/* Move up between UEs. */
 	case KEY_UP:
-		if(iface_ue_sel > 0) {
+		if(iface_ue_sel > 1) {
 			iface_ue_sel--;
 		}
 		break;
 	/* Move down between UEs. */
 	case KEY_DOWN:
-		if(iface_ue_sel + 1 < sim_nof_ues) {
+		if(iface_ue_sel < sim_nof_ues) {
 			iface_ue_sel++;
 		}
 		break;
@@ -255,12 +257,12 @@ int iface_ue_handle_input(int key)
 	case 'a':
 		iface_ue_add_mask = 1;
 		break;
-	/* remove the selected UE. */
+	/* Remove the selected UE. */
 	case 'r':
 		ue_rem(sim_ues[iface_ue_sel_idx].rnti);
 
-		if(iface_ue_sel >= sim_nof_ues) {
-			iface_ue_sel = sim_nof_ues - 1;
+		if(iface_ue_sel > 1) {
+			iface_ue_sel--;
 		}
 		break;
 	/* Increase the RSRP of the selected UE. */
@@ -367,7 +369,7 @@ int iface_ue_draw()
 {
 	int i;
 	int j;
-	int s = 0;
+	int s = 1;
 
 	char tmp[64] = {0};
 	char th[] = "List of active UE in this eNB";
@@ -393,7 +395,7 @@ int iface_ue_draw()
 	/* Draw a list of active UEs! */
 	for(i = 0; i < UE_MAX; i++) {
 		/* Skip empty elements. */
-		if(sim_ues[i].rnti == 0) {
+		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
 			continue;
 		}
 

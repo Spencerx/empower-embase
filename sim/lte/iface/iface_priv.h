@@ -61,10 +61,14 @@ extern u32 iface_help;
 /* Currently visible screen type. */
 extern u32 iface_scr_select;
 
+/* Currently selected UE */
+extern s32 iface_ue_sel;
 /* Currently selected UE index. */
-extern u32 iface_ue_sel_idx;
+extern s32 iface_ue_sel_idx;
+/* Currently selected eNB */
+extern s32 iface_enb_sel;
 /* Currently selected eNB index. */
-extern u32 iface_enb_sel_idx;
+extern s32 iface_enb_sel_idx;
 
 /* Draw the help screen. */
 int iface_help_draw();

@@ -61,7 +61,9 @@ typedef struct __em_sim_phy {
 	u16 pci;
 
 	/* Frequency at which the PHY is operating. */
-	u32 earfcn;
+	u32 DL_earfcn;
+	/* Frequency at which the PHY is operating. */
+	u32 UL_earfcn;
 
 	/* PRBs in the DL. */
 	u32 DL_prb;

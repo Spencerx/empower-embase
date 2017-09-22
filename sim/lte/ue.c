@@ -96,7 +96,7 @@ int ue_add(u16 rnti, u32 plmid, u64 imsi)
 	 * to measurements on the */
 	sim_ues[f].meas[0].id      = 1;
 	sim_ues[f].meas[0].pci     = sim_phy.pci;
-	sim_ues[f].meas[0].earfcn  = sim_phy.earfcn;
+	sim_ues[f].meas[0].earfcn  = sim_phy.DL_earfcn;
 	/* By default the level of the reference signal is at half. */
 	sim_ues[f].meas[0].rs.rsrp = (PHY_RSRP_LOWER - PHY_RSRP_HIGHER) / 2;
 	sim_ues[f].meas[0].rs.rsrq = (PHY_RSRQ_LOWER - PHY_RSRQ_HIGHER) / 2;
@@ -159,6 +159,11 @@ u32 ue_compute_measurements()
 	int i;
 	int j;
 
+	/* Do not compute on disconnected controller. */
+	if(!em_is_connected(sim_ID)) {
+		return SUCCESS;
+	}
+
 	for(i = 0; i < UE_MAX; i++) {
 		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
 			continue;
@@ -168,7 +173,7 @@ u32 ue_compute_measurements()
 			if(sim_ues[i].meas[j].id == UE_RRCM_INVALID) {
 				continue;
 			}
-
+#if 0
 			if(!em_has_trigger(
 				sim_ID,
 				sim_ues[i].meas[j].trigger,
@@ -178,7 +183,7 @@ u32 ue_compute_measurements()
 				sim_ues[i].meas[j].trigger = 0;
 				sim_ues[i].meas[j].mod_id  = 0;
 			}
-
+#endif
 			if(!sim_ues[i].meas[j].dirty) {
 				continue;
 			}
@@ -202,6 +207,12 @@ u32 ue_compute_measurements()
 
 u32 ue_compute(void)
 {
+	int mlen;
+	char buf[MEDIUM_BUF];
+
+	int nof_ues;
+	ep_ue_details ued[32];
+
 	/* Do not compute on disconnected controller. */
 	if(!em_is_connected(sim_ID)) {
 		return SUCCESS;
@@ -216,17 +227,22 @@ u32 ue_compute(void)
 		if(em_has_trigger(
 			sim_ID,
 			sim_UE_rep_trigger,
-			EM_UEs_ID_REPORT_TRIGGER)) {
-#if 0
-			if(msg_UE_report(sim_ID, sim_UE_rep_mod, &msg)) {
-				return -1;
-			}
+			EM_TRIGGER_UE_REPORT)) {
 
-			if(em_send(sim_ID, msg)) {
-				/* Free allocated memory on error. */
-				emage_msg__free_unpacked(msg, 0);
+			nof_ues = msg_fill_ue_details(ued);
+
+			mlen = epf_trigger_uerep_rep(
+				buf,
+				MEDIUM_BUF,
+				sim_ID,
+				0,
+				sim_UE_rep_mod,
+				nof_ues,
+				ued);
+
+			if(mlen > 0) {
+				em_send(sim_ID, buf, mlen);
 			}
-#endif
 		} else {
 			LOG_UE("UEs report trigger %u not present.\n",
 				sim_UE_rep_trigger);
@@ -239,7 +255,5 @@ u32 ue_compute(void)
 	}
 
 	/* Perform computation on UE measurement level. */
-	ue_compute_measurements();
-
-	return SUCCESS;
+	return ue_compute_measurements();
 }
