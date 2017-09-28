@@ -19,6 +19,8 @@
 
 #include <inttypes.h>
 
+#include <emage/emproto.h>
+
 #include "emsim.h"
 
 #define LOG_WRAP(x, ...)        LOG_TRACE(x, ##__VA_ARGS__)
@@ -59,13 +61,18 @@ int wrap_release()
 
 int wrap_enb_setup_request()
 {
-	char     buf[SMALL_BUF] = {0};
-	uint16_t cells[1];
-	int      blen;
+	char        buf[SMALL_BUF] = {0};
+	ep_cell_det cells[1];
+	int         blen;
 
 	LOG_WRAP("eNB setup request received!\n");
 
-	cells[0] = sim_phy.pci;
+	cells[0].cap       = EP_CCAP_NOTHING;
+	cells[0].pci       = sim_phy.pci;
+	cells[0].DL_earfcn = sim_phy.DL_earfcn;
+	cells[0].UL_earfcn = sim_phy.UL_earfcn;
+	cells[0].DL_prbs   = (uint8_t)sim_phy.DL_prb;
+	cells[0].UL_prbs   = (uint8_t)sim_phy.UL_prb;
 
 	blen = epf_single_ecap_rep(
 		buf, SMALL_BUF,
@@ -73,47 +80,11 @@ int wrap_enb_setup_request()
 		sim_phy.pci,
 		0,
 		EP_ECAP_UE_REPORT,
-		(uint16_t *)cells,
+		cells,
 		1);
 
 	if(blen < 0) {
 		LOG_WRAP("Cannot format eNB setup reply!\n");
-		return -1;
-	}
-
-	em_send(sim_ID, buf, blen);
-
-	return 0;
-}
-
-int wrap_cell_setup_request(int cell)
-{
-	char        buf[SMALL_BUF] = {0};
-	int         blen;
-
-	ep_cell_det celld;
-
-	LOG_WRAP("Cell %d setup request received!\n", cell);
-
-	if(sim_phy.pci != cell) {
-		LOG_WRAP("We do not own such cell!\n");
-	}
-
-	celld.DL_earfcn = sim_phy.DL_earfcn;
-	celld.UL_earfcn = sim_phy.UL_earfcn;
-	celld.DL_prbs   = (uint8_t)sim_phy.DL_prb;
-	celld.UL_prbs   = (uint8_t)sim_phy.UL_prb;
-
-	blen = epf_single_ccap_rep(
-		buf, SMALL_BUF,
-		sim_ID,
-		sim_phy.pci,
-		0,
-		EP_CCAP_NOTHING,
-		&celld);
-
-	if(blen < 0) {
-		LOG_WRAP("Cannot format cell setup reply!\n");
 		return -1;
 	}
 
@@ -413,7 +384,6 @@ struct em_agent_ops sim_ops = {
 	.init                   = wrap_init,
 	.release                = wrap_release,
 	.enb_setup_request      = wrap_enb_setup_request,
-	.cell_setup_request     = wrap_cell_setup_request,
 	.ue_report              = wrap_ue_report,
 #if 0
 	.UEs_ID_report          = wrap_UEs_ID_report,
