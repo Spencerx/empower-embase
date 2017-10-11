@@ -37,6 +37,11 @@ u32 sim_ID = 0;
 /* Headless start? */
 u32 sim_hl = 0;
 
+/* Address of the controller */
+char * sim_ctrl_addr = "127.0.0.1";
+/* Port used to connect to the controller */
+u16    sim_ctrl_port = 2210;
+
 void util_mask_all_signals()
 {
 	sigset_t set;
@@ -69,6 +74,10 @@ void help(void)
 "    Number of PRB used in the Downlink.\n"
 "--ul_prb <num>\n"
 "    Number of PRB used in the Uplink.\n"
+"--ctrl_addr <IP addr>\n"
+"    Connect with EmPOWER controller on this address.\n"
+"--ctrl_port <num>\n"
+"    Connect with EmPOWER controller using custom port.\n"
 "--hl\n"
 "    Headless, run without UI\n");
 }
@@ -126,6 +135,36 @@ void parse_args(int argc, char ** argv)
 			continue;
 		}
 
+		if(strcmp(argv[i], "--ctrl_addr") == 0) {
+			if(i + 1 >= argc) {
+				LOG_MAIN("--ctrl_addr miss a value\n");
+				continue;
+			}
+
+			sim_ctrl_addr = argv[i + 1];
+			i++;
+
+			LOG_MAIN("Will connect to controller %s\n",
+				sim_ctrl_addr);
+
+			continue;
+		}
+
+		if(strcmp(argv[i], "--ctrl_port") == 0) {
+			if(i + 1 >= argc) {
+				LOG_MAIN("--ctrl_port miss a value\n");
+				continue;
+			}
+
+			sim_ctrl_port = (u16)atoi(argv[i + 1]);
+			i++;
+
+			LOG_MAIN("Will connect to controller port %d\n",
+				sim_ctrl_port);
+
+			continue;
+		}
+
 		if(strcmp(argv[i], "--hl") == 0) {
 			sim_hl = 1;
 
@@ -171,7 +210,7 @@ int main(int argc, char ** argv) {
 	parse_args(argc, argv);
 
 	/* Start the agent. */
-	em_start(&sim_ops, sim_ID);
+	em_start(sim_ID, &sim_ops, sim_ctrl_addr, sim_ctrl_port);
 
 	/* Start the X2 interface. */
 	if(x2_init()) {
