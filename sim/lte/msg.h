@@ -20,6 +20,8 @@
 #ifndef __EM_SIM_MSG_H
 #define __EM_SIM_MSG_H
 
+#include "ue.h"
+
 #include <emage/emproto.h>
 
 /******************************************************************************
@@ -32,6 +34,9 @@
 
 /* Fill the protocol structure with proper UE data */
 int msg_fill_ue_details(ep_ue_details * ues);
+
+/* fill the protocol structure with proper measurement data. */
+int msg_fill_ue_measurements(em_ue_rrcm * uem, ep_ue_measure * m);
 
 #if 0
 /* Creates a report of the cell statistics of PRB utilization.

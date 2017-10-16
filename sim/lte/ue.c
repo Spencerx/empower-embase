@@ -156,8 +156,12 @@ u16 ue_rnti_candidate(void)
 
 u32 ue_compute_measurements()
 {
-	int i;
-	int j;
+	int           i;
+	int           j;
+
+	int           mlen;
+	char          buf[MEDIUM_BUF];
+	ep_ue_measure m;
 
 	/* Do not compute on disconnected controller. */
 	if(!em_is_connected(sim_ID)) {
@@ -170,33 +174,39 @@ u32 ue_compute_measurements()
 		}
 
 		for(j = 0; j < UE_RRCM_MAX; j++) {
-			if(sim_ues[i].meas[j].id == UE_RRCM_INVALID) {
+			if(sim_ues[i].meas[j].tri_id == 0) {
 				continue;
 			}
-#if 0
+
+			/* Trigger removed; clean up */
 			if(!em_has_trigger(
-				sim_ID,
-				sim_ues[i].meas[j].trigger,
-				EM_RRC_MEAS_TRIGGER)) {
+				sim_ID, sim_ues[i].meas[j].tri_id)) {
 
 				/* Invalidate the trigger. */
-				sim_ues[i].meas[j].trigger = 0;
-				sim_ues[i].meas[j].mod_id  = 0;
+				sim_ues[i].meas[j].tri_id = 0;
+				sim_ues[i].meas[j].mod_id = 0;
+				sim_ues[i].meas[j].dirty  = 0;
 			}
-#endif
+
 			if(!sim_ues[i].meas[j].dirty) {
 				continue;
 			}
-#if 0
-			if(msg_RRC_meas(sim_ID, i, j, &msg)) {
-				continue;
-			}
 
-			if(em_send(sim_ID, msg)) {
-				emage_msg__free_unpacked(msg, 0);
-				continue;
-			}
-#endif
+			msg_fill_ue_measurements(
+				&sim_ues[i].meas[j], &m);
+
+			mlen = epf_trigger_uemeas_rep(
+				buf,
+				MEDIUM_BUF,
+				sim_ID,
+				sim_ues[i].meas[j].pci,
+				sim_ues[i].meas[j].mod_id,
+				1,
+				UE_RRCM_MAX,
+				&m);
+
+			em_send(sim_ID, buf, mlen);
+
 			/* Keep it dirty if some error occurs. */
 			sim_ues[i].meas[j].dirty = 0;
 		}
@@ -226,8 +236,7 @@ u32 ue_compute(void)
 		/* Check every time is the trigger is still there. */
 		if(em_has_trigger(
 			sim_ID,
-			sim_UE_rep_trigger,
-			EM_TRIGGER_UE_REPORT)) {
+			sim_UE_rep_trigger)) {
 
 			nof_ues = msg_fill_ue_details(ued);
 
@@ -238,6 +247,7 @@ u32 ue_compute(void)
 				0,
 				sim_UE_rep_mod,
 				nof_ues,
+				sim_UE_rep_max,
 				ued);
 
 			if(mlen > 0) {

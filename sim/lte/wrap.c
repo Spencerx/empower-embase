@@ -29,8 +29,9 @@
  * Globals used all around the simulator:                                     *
  ******************************************************************************/
 
-s32 sim_UE_rep_trigger     = 0;
+s32 sim_UE_rep_max         = 32;
 u32 sim_UE_rep_mod         = 0;
+s32 sim_UE_rep_trigger     = 0;
 
 s32 sim_cell_stats_trigger = 0;
 u32 sim_cell_stat_mod      = 0;
@@ -59,6 +60,52 @@ int wrap_release()
 	return 0;
 }
 
+int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
+{
+	char        buf[SMALL_BUF] = {0};
+	ep_cell_det cell;
+	int         blen;
+
+	LOG_WRAP("Cell setup request received!\n");
+
+	if(cell_id != sim_phy.pci) {
+		blen = epf_single_ecap_rep_fail(
+			buf, SMALL_BUF, sim_ID, cell_id, mod);
+
+		if(blen < 0) {
+			LOG_WRAP("Cannot format cell setup reply!\n");
+			return -1;
+		}
+
+		return em_send(sim_ID, buf, blen);
+	}
+
+	cell.cap       = EP_CCAP_NOTHING;
+	cell.pci       = sim_phy.pci;
+	cell.DL_earfcn = sim_phy.DL_earfcn;
+	cell.UL_earfcn = sim_phy.UL_earfcn;
+	cell.DL_prbs   = (uint8_t)sim_phy.DL_prb;
+	cell.UL_prbs   = (uint8_t)sim_phy.UL_prb;
+
+	blen = epf_single_ccap_rep(
+		buf,
+		SMALL_BUF,
+		sim_ID,
+		sim_phy.pci,
+		mod,
+		&cell);
+
+	if(blen < 0) {
+		LOG_WRAP("Cannot format cell setup reply!\n");
+		return -1;
+	}
+
+	em_send(sim_ID, buf, blen);
+
+	return 0;
+}
+
+
 int wrap_enb_setup_request()
 {
 	char        buf[SMALL_BUF] = {0};
@@ -75,7 +122,8 @@ int wrap_enb_setup_request()
 	cells[0].UL_prbs   = (uint8_t)sim_phy.UL_prb;
 
 	blen = epf_single_ecap_rep(
-		buf, SMALL_BUF,
+		buf,
+		SMALL_BUF,
 		sim_ID,
 		sim_phy.pci,
 		0,
@@ -93,9 +141,9 @@ int wrap_enb_setup_request()
 	return 0;
 }
 
-int wrap_ue_report(unsigned int mod, int trig_id, int trig_type)
+int wrap_ue_report(uint32_t mod, int trig_id)
 {
-	LOG_WRAP("eNB %d UE report (%d, %d)\n", sim_ID, trig_id, trig_type);
+	LOG_WRAP("eNB %d UE report (id=%d)\n", sim_ID, trig_id);
 
 	sim_UE_rep_trigger = trig_id;
 	sim_UE_rep_mod     = mod;
@@ -103,6 +151,84 @@ int wrap_ue_report(unsigned int mod, int trig_id, int trig_type)
 
 	return 0;
 }
+
+int wrap_ue_measure(
+	uint32_t     mod,
+	int          trig_id,
+	uint8_t      measure_id,
+	uint16_t     rnti,
+	uint16_t     earfcn,
+	uint16_t     interval,
+	int16_t      max_cells,
+	int16_t      max_meas)
+{
+	int  i;
+	int  j;
+	char buf[SMALL_BUF] = {0};
+	int  blen;
+
+	LOG_WRAP("Controller module %d requested UE %x measure on freq %d\n",
+		mod, rnti, earfcn);
+
+	for(i = 0; i < UE_MAX; i++) {
+		if(sim_ues[i].rnti == rnti) {
+			break;
+		}
+	}
+
+	/* UE not found */
+	if(i == UE_MAX) {
+		LOG_WRAP("UE %x not found\n", rnti);
+
+		blen = epf_trigger_uemeas_rep_fail(
+			buf, SMALL_BUF, sim_ID, sim_phy.pci, mod);
+
+		if(blen < 0) {
+			LOG_WRAP("Cannot format UE measure reply!\n");
+			return 0;
+		}
+
+		em_send(sim_ID, buf, blen);
+
+		return 0;
+	}
+
+	for(j = 0; j < UE_RRCM_MAX; j++) {
+		if(sim_ues[i].meas[j].tri_id == 0) {
+			break;
+		}
+	}
+
+	if(j == UE_RRCM_MAX) {
+		LOG_WRAP("Too many active measurements for RNTI %x\n", rnti);
+
+		blen = epf_trigger_uemeas_rep_fail(
+			buf, SMALL_BUF, sim_ID, sim_phy.pci, mod);
+
+		if(blen < 0) {
+			LOG_WRAP("Cannot format UE measure reply!\n");
+			return 0;
+		}
+
+		em_send(sim_ID, buf, blen);
+
+		return 0;
+	}
+
+	sim_ues[i].meas[j].mod_id   = mod;
+	sim_ues[i].meas[j].tri_id   = trig_id;
+	sim_ues[i].meas[j].earfcn   = earfcn;
+	sim_ues[i].meas[j].interval = interval;
+	sim_ues[i].meas[j].id       = measure_id;
+	/* For the first measurement */
+	sim_ues[i].meas[j].dirty    = 1;
+
+	sim_ues[i].meas[j].rs.rsrp  = PHY_RSRP_LOWER;
+	sim_ues[i].meas[j].rs.rsrq  = PHY_RSRQ_LOWER;
+
+	return 0;
+}
+
 
 #if 0
 int wrap_cell_stats(
@@ -383,8 +509,10 @@ int wrap_cell_report(EmageMsg * request, EmageMsg ** reply)
 struct em_agent_ops sim_ops = {
 	.init                   = wrap_init,
 	.release                = wrap_release,
+	.cell_setup_request     = wrap_cell_setup_request,
 	.enb_setup_request      = wrap_enb_setup_request,
 	.ue_report              = wrap_ue_report,
+	.ue_measure             = wrap_ue_measure,
 #if 0
 	.UEs_ID_report          = wrap_UEs_ID_report,
 	.cell_statistics_report = wrap_cell_stats,

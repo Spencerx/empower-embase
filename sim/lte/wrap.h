@@ -28,6 +28,7 @@
  ******************************************************************************/
 
 /* UE report triggering variables. */
+extern s32 sim_UE_rep_max;
 extern s32 sim_UE_rep_trigger;
 extern u32 sim_UE_rep_mod;
 

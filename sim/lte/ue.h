@@ -59,24 +59,28 @@
 /* RRC measurement issued to an UE to scan a certain frequency. */
 typedef struct __em_sim_rrc_measurement {
 	/* Id of this particular measurement. */
-	u32 id;
+	u32       id;
+
 	/* Trigger id assigned by the agent subsystem. */
-	u32 trigger;
-	/* Transaction id assigned by controller. */
-	u32 mod_id;
+	u32       tri_id;
+	/* Module which requested the measure. */
+	u32       mod_id;
+
 	/* Frequency to scan. */
-	u32 earfcn;
+	u32       earfcn;
+	/* Interval for the report */
+	uint16_t  interval;
 
 	/* PCI detected on such measurement, if any. */
-	u16 pci;
+	u16       pci;
 	/* Reference signal detected. */
 	em_phy_rs rs;
 
 	/* Bandwidth for this measurement. */
-	u32 bw;
+	u32       bw;
 
 	/* Modifications occurs on such measurements? */
-	u32 dirty;
+	u32       dirty;
 } em_ue_rrcm;
 
 /* Describes how a neighbor cell is seen by this one. */
