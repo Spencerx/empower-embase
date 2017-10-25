@@ -20,7 +20,7 @@
 #ifndef __EM_SIM_UE_H
 #define __EM_SIM_UE_H
 
-#include "phy.h"
+#include "stack.h"
 
 /******************************************************************************
  * RNTI information.                                                          *
@@ -83,8 +83,11 @@ typedef struct __em_sim_rrc_measurement {
 	u32       dirty;
 } em_ue_rrcm;
 
-/* Describes how a neighbor cell is seen by this one. */
+/* Describes the UE */
 typedef struct __em_sim_user_equipment{
+	/* Cell at which the UE is attached */
+	u16 pci;
+
 	/* Radio Network Temporary Identifier. */
 	u16 rnti;
 
@@ -121,7 +124,7 @@ extern u32 sim_ue_dirty;
 /* Adds a new UE in the managed ones.
  * Returns the UE slot index on success, otherwise a negative error code.
  */
-int ue_add(u16 rnti, u32 plmid, u64 imsi);
+int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmid, u64 imsi);
 
 /* Simulates the UE attached to this cell. This procedure is part of the
  * simulator computation loops, which updates status and perform custom

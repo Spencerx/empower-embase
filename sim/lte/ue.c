@@ -42,7 +42,7 @@ u32 sim_ue_dirty = 0;
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
-int ue_add(u16 rnti, u32 plmid, u64 imsi)
+int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmid, u64 imsi)
 {
 	int i;
 	int e;      /* Existing RNTI detected. */
@@ -85,6 +85,7 @@ int ue_add(u16 rnti, u32 plmid, u64 imsi)
 	/* Clean everything before the use. */
 	memset(&sim_ues[f], 0, sizeof(em_ue));
 
+	sim_ues[f].pci   = pci;
 	sim_ues[f].rnti  = rnti;
 	sim_ues[f].plmn  = plmid;
 	sim_ues[f].imsi  = imsi;
@@ -93,10 +94,10 @@ int ue_add(u16 rnti, u32 plmid, u64 imsi)
 	sim_ues[f].bands[0] = 7;
 
 	/* Measurements on place in the UE; by default the slot 0 is reserved
-	 * to measurements on the */
-	sim_ues[f].meas[0].id      = 1;
-	sim_ues[f].meas[0].pci     = sim_phy.pci;
-	sim_ues[f].meas[0].earfcn  = sim_phy.DL_earfcn;
+	 * to measurements on the attached cell. */
+	sim_ues[f].meas[0].id      = 0;
+	sim_ues[f].meas[0].pci     = pci;
+	sim_ues[f].meas[0].earfcn  = earfcn;
 	/* By default the level of the reference signal is at half. */
 	sim_ues[f].meas[0].rs.rsrp = (PHY_RSRP_LOWER - PHY_RSRP_HIGHER) / 2;
 	sim_ues[f].meas[0].rs.rsrq = (PHY_RSRQ_LOWER - PHY_RSRQ_HIGHER) / 2;
@@ -108,7 +109,8 @@ int ue_add(u16 rnti, u32 plmid, u64 imsi)
 	/* Signal that the UEs list is dirty and shall be reported. */
 	sim_ue_dirty = 1;
 
-	LOG_UE("UE %u added; PLMN=%d, IMSI=%"PRIu64".\n",
+	LOG_UE("UE %u added; Cell=%d, PLMN=%d, IMSI=%"PRIu64".\n",
+		sim_ues[f].pci,
 		sim_ues[f].rnti,
 		sim_ues[f].plmn,
 		sim_ues[f].imsi);
@@ -186,6 +188,8 @@ u32 ue_compute_measurements()
 				sim_ues[i].meas[j].tri_id = 0;
 				sim_ues[i].meas[j].mod_id = 0;
 				sim_ues[i].meas[j].dirty  = 0;
+
+				continue;
 			}
 
 			if(!sim_ues[i].meas[j].dirty) {

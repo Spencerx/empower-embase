@@ -80,6 +80,8 @@ int iface_ue_handle_add_input(int key)
 
 		/* Add a new UE with the given details. */
 		e = ue_add(
+			sim_phy.cells[0].pci,
+			sim_phy.cells[0].DL_earfcn,
 			(unsigned short)atoi(iface_ue_add_rnti),
 			(unsigned int)atoi(iface_ue_add_plmn),
 			(unsigned long long)atoll(iface_ue_add_imsi));

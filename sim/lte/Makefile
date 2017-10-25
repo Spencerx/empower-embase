@@ -16,7 +16,7 @@
 
 CC=gcc
 
-LIBS=-lemagent -lemproto -lpthread -lncurses
+LIBS=-lm -lemagent -lemproto -lpthread -lncurses
 INCLUDES=-I$(SIM_DIR)/include
 
 all:
@@ -24,18 +24,19 @@ all:
 		iface/enb/iface_enb.c         \
 		iface/help/iface_help.c       \
 		iface/ue/iface_ue.c           \
-	        iface/iface.c                 \
-	        err.c                         \
+		iface/iface.c                 \
+		stack/phy.c                   \
+		stack/mac.c                   \
+		stack/stack.c                 \
+		err.c                         \
 		log.c                         \
 		main.c                        \
 		msg.c                         \
 		neigh.c                       \
-		phy.c                         \
-		ran.c                         \
 		ue.c                          \
 		wrap.c                        \
 		x2.c                          \
 		$(LIBS) 
-		
+
 clean:
 	rm -f ./em-sim

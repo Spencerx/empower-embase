@@ -23,6 +23,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 
 #include "emsim.h"
@@ -50,9 +51,17 @@ int x2_alive(struct x2_head * head, char * ipv4)
 	/* Somebody with our same id is contacting us!
 	 * Some serious mis-configuration is happening in the net.
 	 */
-	if(head->base_id == sim_ID) {
+	if(ntohl(head->base_id) == sim_ID) {
 		LOG_X2("eNB id (%u) conflict with %s\n", head->base_id, ipv4);
-		return ERR_UNKNOWN;
+
+		for(i = 0; i < sim_nof_neigh; i++) {
+			if(memcmp(ipv4, sim_neighs[i].ipv4, 16) == 0) {
+				sim_neighs[i].id = 0;
+				break;
+			}
+		}
+
+		return ERR_X2_ALIVE_ME;
 	}
 
 	for(i = 0; i < sim_nof_neigh; i++) {
@@ -91,7 +100,12 @@ int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 		be64toh(ho->imsi),
 		ntohl(head->base_id));
 
-	ue_add(rnti, ntohl(ho->plmnid), be64toh(ho->imsi));
+	ue_add(
+		sim_phy.cells[0].pci,
+		sim_phy.cells[0].DL_earfcn,
+		rnti,
+		ntohl(ho->plmnid),
+		be64toh(ho->imsi));
 
 	return SUCCESS;
 }
@@ -132,7 +146,7 @@ int x2_init()
 
 	/* Bind the address with the socket. */
 	if(status) {
-		LOG_X2("Could not X2 socket, error=%d\n", status);
+		LOG_X2("Could not bind X2 socket, error=%d\n", status);
 		return ERR_X2_INIT_BIND;
 	}
 
@@ -254,7 +268,7 @@ u32 x2_compute()
 		/* Only if its a valid one. */
 		if(sim_neighs[i].id) {
 			j.base_id = htonl(sim_ID);
-			j.cell_id = htonl(sim_phy.pci);
+			j.cell_id = htonl(sim_phy.cells[0].pci);
 			j.type = X2_MSG_ALIVE;
 
 			/* Send the 'I'm alive' message. */

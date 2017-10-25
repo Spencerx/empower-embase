@@ -51,7 +51,7 @@ int msg_fill_ue_details(ep_ue_details * ues)
 			break;
 		}
 
-		ues[i].pci  = sim_phy.pci;
+		ues[i].pci  = sim_ues[j].pci;
 		ues[i].rnti = sim_ues[j].rnti;
 		ues[i].plmn = sim_ues[j].plmn;
 		ues[i].imsi = sim_ues[j].imsi;

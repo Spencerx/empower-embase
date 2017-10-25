@@ -14,38 +14,47 @@
  */
 
 /*
- * Empower Agent simulator master header.
+ * Empower Agent simulator PHY module.
  */
 
-#ifndef __EM_SIM_H
-#define __EM_SIM_H
-
-#include "err.h"
-#include "iface.h"
-#include "log.h"
-#include "msg.h"
-#include "neigh.h"
-#include "stack.h"
-#include "ue.h"
-#include "wrap.h"
-#include "x2.h"
-
-#define SMALL_BUF      64
-#define MEDIUM_BUF     2048
-#define BIG_BUF        16384
+#include "../emsim.h"
 
 /******************************************************************************
  * Globals used all around the simulator:                                     *
  ******************************************************************************/
 
-/* Id of the agent associated with the simulator. */
-extern u32 sim_ID;
+em_phy sim_phy = {0};
 
 /******************************************************************************
- * Globals utilities:                                                         *
+ * Public accessible procedures:                                              *
  ******************************************************************************/
 
-/* Mask all signal so they wont distub the calling thread */
-void util_mask_all_signals();
+u32 phy_init()
+{
+	int i;
 
-#endif
+	/* Initialize cells with invalid ids */
+	for(i = 0; i < PHY_CELL_MAX; i++) {
+		sim_phy.cells[0].pci = 0xffff;
+	}
+
+	/* Only one cell by default */
+	sim_phy.nof_cells          = 1;
+
+	sim_phy.cells[0].pci       = 1;
+	sim_phy.cells[0].DL_earfcn = 1750;
+	sim_phy.cells[0].UL_earfcn = sim_phy.cells[0].DL_earfcn + 18000;
+	sim_phy.cells[0].DL_prb    = 25;
+	sim_phy.cells[0].UL_prb    = 25;
+
+	return SUCCESS;
+}
+
+/******************************************************************************
+ * PHY simulation logic:                                                      *
+ ******************************************************************************/
+
+u32 phy_compute()
+{
+	return SUCCESS;
+}

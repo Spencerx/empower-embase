@@ -66,14 +66,8 @@ void help(void)
 "\n"
 "--id <num>\n"
 "    Agent id for this instance.\n"
-"--cell <num>\n"
-"    Physical Cell Id for this instance.\n"
-"--freq <earfcn>\n"
-"    Frequency used by the cell.\n"
-"--dl_prb <num>\n"
-"    Number of PRB used in the Downlink.\n"
-"--ul_prb <num>\n"
-"    Number of PRB used in the Uplink.\n"
+"--cell <pci:DL_earfcn:UL_earfcn:DL_prbs:UL_prbs>\n"
+"    Define a new cell in the simulator.\n"
 "--ctrl_addr <IP addr>\n"
 "    Connect with EmPOWER controller on this address.\n"
 "--ctrl_port <num>\n"
@@ -82,9 +76,41 @@ void help(void)
 "    Headless, run without UI\n");
 }
 
+void parse_cell(char * args)
+{
+	char * pci;
+	char * dl_earfcn;
+	char * ul_earfcn;
+	char * dl_prb;
+	char * ul_prb;
+
+	if(sim_phy.nof_cells == PHY_CELL_MAX) {
+		LOG_MAIN("Error: Too many cells defined!\n");
+		return;
+	}
+
+	pci       = strtok(args, ":");
+	dl_earfcn = strtok(0, ":");
+	ul_earfcn = strtok(0, ":");
+	dl_prb    = strtok(0, ":");
+	ul_prb    = strtok(0, ":");
+
+	if(stack_add_cell(
+		(unsigned short)atoi(pci),
+		atoi(dl_earfcn),
+		atoi(ul_earfcn),
+		(unsigned char)atoi(dl_prb),
+		(unsigned char)atoi(ul_prb))) {
+
+		LOG_MAIN("Cell configuration failed!\n");
+		exit(0);
+	}
+}
+
 void parse_args(int argc, char ** argv)
 {
 	int i;
+	int cb = 0;
 
 	for(i = 1; i < argc; i++) {
 		if(strcmp(argv[i], "--id") == 0) {
@@ -96,41 +122,15 @@ void parse_args(int argc, char ** argv)
 			continue;
 		}
 
-		if(strcmp(argv[i], "--freq") == 0) {
-			sim_phy.DL_earfcn = atoi(argv[i + 1]);
-			sim_phy.UL_earfcn = sim_phy.DL_earfcn + 18000;
-
-			i = i + 1;
-
-			LOG_MAIN("Cell EARFCN frequency set to DL:%d, UL:%d.\n",
-				sim_phy.DL_earfcn, sim_phy.UL_earfcn);
-
-			continue;
-		}
-
-		if(strcmp(argv[i], "--dl_prb") == 0) {
-			sim_phy.DL_prb = atoi(argv[i + 1]);
-			i = i + 1;
-
-			LOG_MAIN("DL PRB set to %d.\n", sim_phy.DL_prb);
-
-			continue;
-		}
-
-		if(strcmp(argv[i], "--ul_prb") == 0) {
-			sim_phy.UL_prb = atoi(argv[i + 1]);
-			i = i + 1;
-
-			LOG_MAIN("UL PRB set to %d.\n", sim_phy.UL_prb);
-
-			continue;
-		}
-
 		if(strcmp(argv[i], "--cell") == 0) {
-			sim_phy.pci = atoi(argv[i + 1]);
-			i = i + 1;
+			/* Perform default cell bypass */
+			if(!cb) {
+				sim_phy.nof_cells = 0;
+				cb = 1;
+			}
 
-			LOG_MAIN("Physical cell ID set to %d.\n", sim_phy.pci);
+			parse_cell(argv[i + 1]);
+			i = i + 1;
 
 			continue;
 		}
@@ -196,15 +196,15 @@ int main(int argc, char ** argv) {
 	/* Salt the random mechanism... will be used later. */
 	srand((int)time(NULL));
 
-	/* Initialize the PHY subsystem. */
-	if(phy_init()) {
+	/* Initialize the LTE stack simulation subsystem. */
+	if(stack_init()) {
 		return 0;
 	}
 
 	/* Initialize the RAN subsystem. */
-	if(ran_init()) {
-		return 0;
-	}
+	//if(ran_init()) {
+	//	return 0;
+	//}
 
 	/* Examine arguments. */
 	parse_args(argc, argv);
@@ -227,31 +227,19 @@ int main(int argc, char ** argv) {
 	/* Wait for the interface to come down... */
 	do {
 		/*
-		 * UE related stuff:
-		 */
-
-		/*
 		 * Perform UE simulation.
 		 * NOTE: this can generate network feedback.
 		 */
 		ue_compute();
 
-
 		/*
-		 * PHY related:
+		 * Perform LTE stack simulation.
 		 */
-
-		/*
-		 * Perform PHY layer emulation.
-		 * NOTE: this can generate network feedback.
-		 */
-		phy_compute();
+		stack_compute();
 
 		/*
 		 * X2 channel for eNB-to-eNB communication.
-		 * NOTE: this can generate network feedback.
 		 */
-
 		x2_compute();
 
 		/* Sleep for one second. */

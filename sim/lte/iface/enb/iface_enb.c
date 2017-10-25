@@ -718,7 +718,7 @@ int iface_enb_draw()
 {
 	int i;
 	int j;
-	int s = 0;
+	int s = 1;
 
 	char tmp[64] = {0};
 	char th[] = "List of known cells in this eNB";

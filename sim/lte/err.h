@@ -73,6 +73,8 @@ enum __em_sim_errors {
 	 * PHY errors:
 	 */
 
+	ERR_PHY_INIT,
+
 	/*
 	 * RAN errors:
 	 */
@@ -125,6 +127,8 @@ enum __em_sim_errors {
 	ERR_X2_HO_CELL,
 	/* UE not found during Hand-over. */
 	ERR_X2_HO_UE,
+	/* Alive procedure detected yourself as a neighbor. */
+	ERR_X2_ALIVE_ME,
 
 	/*
 	 * Finally the succeed code, which is not really an 'error'.
