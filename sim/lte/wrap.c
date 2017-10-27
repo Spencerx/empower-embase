@@ -152,6 +152,42 @@ int wrap_enb_setup_request()
 	return 0;
 }
 
+int wrap_handover(
+	uint32_t mod,
+	uint16_t source_cell,
+	uint16_t rnti,
+	uint32_t target_enb,
+	uint16_t target_cell,
+	uint8_t  cause)
+{
+	char        buf[SMALL_BUF] = {0};
+	int         blen;
+
+	LOG_WRAP("UE handover requested for RNTI %x\n", rnti);
+
+	if(x2_hand_over(rnti, target_enb)) {
+		LOG_WRAP("Failed to hand RNTI %x over\n", rnti);
+
+		blen = epf_single_ho_rep_fail(
+			buf, SMALL_BUF, sim_ID, source_cell, mod);
+
+		return 0;
+	} else {
+		blen = epf_single_ho_rep(
+			buf, SMALL_BUF, sim_ID, source_cell, mod);
+
+		ue_rem(rnti);
+	}
+
+	if(blen < 0) {
+		return 0;
+	}
+
+	em_send(sim_ID, buf, blen);
+
+	return 0;
+}
+
 int wrap_ue_report(uint32_t mod, int trig_id)
 {
 	LOG_WRAP("eNB %d UE report (id=%d)\n", sim_ID, trig_id);
@@ -246,6 +282,7 @@ struct em_agent_ops sim_ops = {
 	.release                = wrap_release,
 	.cell_setup_request     = wrap_cell_setup_request,
 	.enb_setup_request      = wrap_enb_setup_request,
+	.handover_UE            = wrap_handover,
 	.ue_report              = wrap_ue_report,
 	.ue_measure             = wrap_ue_measure,
 };
