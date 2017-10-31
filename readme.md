@@ -16,13 +16,15 @@ In order to successfully build EMAge you need:
 Once you installed all the necessary pre-requisites in your system, is enough to invoke the `make` directly from the root folder. As a default action the project will fall down into the right subdirectory and will compile the application.
 
 ### Run the simulator
-There are limited features actually in the project. Running the compiled application will print the help screen on the console, which will guide you through the required arguments. For a quick start is enough to run the command `embase --id 1` to start a simulator instance with agent id 1 and Physical Cell Id 0; to enrich the simulation provide additional arguments which better describe your cell.
+Running the compiled application will print the help screen on the console, which will guide you through the required arguments. For a quick start is enough to run the command `embase --id 1` to start a simulator instance with agent id 1 and Physical Cell Id 0; to enrich the simulation provide additional arguments which better describe your cell.
 
 The simulator just needs a console to run and draw the interface, so it can be easily used though an SSH shell.
 
-### The Team
-Here a list of the maintainers of such project:
-* Rausch Kewin, <krausch@fbk.eu>
+**Customizing cells:** It is possible to create up to 6 cells for a single eNB instance, and this is done by issuing the right argument during application launch. The syntax for such operation is `--cell <pci:DL_earfcn:UL_earfcn:DL_prbs:UL_prbs>`. As you can see you need to specify the Physical Cell Id (PCI), the DL frequency (EARFCN), the DL number of Physical Resource Blocks (PRBs), the Uplink EARFCN and the UL number of PRBs.
+
+**Running multiple instances**: It is possible to run multiple instance of the simulator on the same machine by selecting a proper X2 interface port number during application launch. Default X2 interface for the simulator eNB is `9999`, but by using the command `--x2p <port>` you can actually force the simulator to switch on another one.
+
+**Headless**: It is possible to run the simulator in headless mode, but such functionality now is limited. If you specify the `--hl` command as an argument, the interface will be supressed.
 
 ### License
 Code is released under the Apache License, Version 2.0.
