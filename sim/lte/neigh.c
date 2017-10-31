@@ -37,7 +37,7 @@ u32 sim_nof_neigh = 0;
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
-int neigh_add_ipv4(u32 id, u16 pci, char * ipv4)
+int neigh_add_ipv4(u32 id, u16 pci, char * ipv4, int port)
 {
 	int i;
 	int f = -1; /* First free. */
@@ -70,7 +70,7 @@ int neigh_add_ipv4(u32 id, u16 pci, char * ipv4)
 	memcpy(sim_neighs[f].ipv4, ipv4, strnlen(ipv4, 16));
 
 	inet_pton(AF_INET, sim_neighs[f].ipv4, &(sim_neighs[f].saddr.sin_addr));
-	sim_neighs[f].saddr.sin_port = htons(X2_DEFAULT_PORT);
+	sim_neighs[f].saddr.sin_port = htons(port);
 
 	/* Increment the number of known eNBs. */
 	sim_nof_neigh++;

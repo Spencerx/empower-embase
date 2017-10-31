@@ -37,13 +37,15 @@
  ******************************************************************************/
 
 /* File descriptor used for network communication between eNBs. */
-int sim_x2_fd = 0;
+int            sim_x2_fd   = 0;
+/* Port used for X2 interface */
+unsigned short sim_x2_port = X2_DEFAULT_PORT;
 
 /******************************************************************************
  * Private procedures for X2 module only:                                     *
  ******************************************************************************/
 
-int x2_alive(struct x2_head * head, char * ipv4)
+int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 {
 	int i;
 	int f = -1;
@@ -85,7 +87,7 @@ int x2_alive(struct x2_head * head, char * ipv4)
 			ntohl(head->base_id), ipv4);
 
 		neigh_add_ipv4(
-			ntohl(head->base_id), ntohl(head->cell_id), ipv4);
+			ntohl(head->base_id), ntohl(head->cell_id), ipv4, port);
 	}
 
 	return SUCCESS;
@@ -137,7 +139,7 @@ int x2_init()
 
 	addr.sin_family      = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port        = htons(X2_DEFAULT_PORT);
+	addr.sin_port        = htons(sim_x2_port);
 
 	status = bind(
 		sim_x2_fd,
@@ -251,7 +253,7 @@ u32 x2_compute()
 					addr,
 					INET_ADDRSTRLEN);
 
-				x2_alive(h, addr);
+				x2_alive(h, addr, ntohs(sa.sin_port));
 				break;
 			case X2_MSG_HANDOVER:
 				x2_handover(h, buf, ret);

@@ -72,7 +72,7 @@ extern u32 sim_nof_neigh;
 /* Prepare a neighbor slot in order to describe the given cell.
  * Returns the chosen index, or a negative number on error.
  */
-int neigh_add_ipv4(u32 id, u16 pci, char * ipv4);
+int neigh_add_ipv4(u32 id, u16 pci, char * ipv4, int port);
 
 /* Clean the neighbor slot by using the ID.
  * Returns 0 on success, otherwise a negative error code.

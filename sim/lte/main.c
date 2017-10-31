@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -150,17 +151,17 @@ void parse_args(int argc, char ** argv)
 			continue;
 		}
 
-		if(strcmp(argv[i], "--ctrl_port") == 0) {
+		if(strcmp(argv[i], "--x2p") == 0) {
 			if(i + 1 >= argc) {
-				LOG_MAIN("--ctrl_port miss a value\n");
+				LOG_MAIN("--x2p miss a value\n");
 				continue;
 			}
 
-			sim_ctrl_port = (u16)atoi(argv[i + 1]);
+			sim_x2_port = (u16)atoi(argv[i + 1]);
 			i++;
 
-			LOG_MAIN("Will connect to controller port %d\n",
-				sim_ctrl_port);
+			LOG_MAIN("Will start X2 interface on port %d\n",
+				sim_x2_port);
 
 			continue;
 		}
@@ -180,6 +181,7 @@ void parse_args(int argc, char ** argv)
  ******************************************************************************/
 
 int main(int argc, char ** argv) {
+	char logp[256] = {0};
 	//util_mask_all_signals();
 
 	/* No arguments means show the help. */
@@ -188,8 +190,10 @@ int main(int argc, char ** argv) {
 		return 0;
 	}
 
+	snprintf(logp, 256, "emlog.%d.log", getpid());
+
 	/* Initialize the logging subsystem. */
-	if(log_init("emlog.log")) {
+	if(log_init(logp)) {
 		return 0;
 	}
 
@@ -249,6 +253,8 @@ int main(int argc, char ** argv) {
 out:
 	em_terminate_agent(sim_ID);
 	log_release();
+
+	printf("Logging session saved in %s\n", logp);
 
 	return 0;
 }

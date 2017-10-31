@@ -29,6 +29,7 @@
 
 #define IFACE_ENB_ID_MAX	10
 #define IFACE_ENB_IP_MAX	15
+#define IFACE_ENB_PORT_MAX	6
 
 /*
  * Handover stuff.
@@ -45,11 +46,14 @@ u32 iface_enb_ho_idx = 0;
 u32 iface_enb_add_mask= 0;
 u32 iface_enb_add_sel = 0;
 
-u32 iface_enb_add_id_idx = 0;
+s32 iface_enb_add_id_idx = 0;
 char iface_enb_add_id[IFACE_ENB_ID_MAX + 1] = {0};
 
-u32 iface_enb_add_ip_idx = 0;
+s32 iface_enb_add_ip_idx = 0;
 char iface_enb_add_ip[IFACE_ENB_IP_MAX + 1] = {0};
+
+s32 iface_enb_add_port_idx = 0;
+char iface_enb_add_port[IFACE_ENB_PORT_MAX + 1] = {0};
 
 /*
  * UE measurements for neighbor cell/
@@ -382,9 +386,12 @@ int iface_enb_handover_input(int key)
 	/* This is the ENTER key; time to insert the new UE. */
 	case 10:
 		/* Perform the hand-over. */
-		x2_hand_over(iface_enb_sel_idx, iface_enb_ho_idx);
+		x2_hand_over(
+			sim_ues[iface_enb_sel_idx].rnti,
+			sim_neighs[iface_enb_ho_idx].id);
+
 		/* Remove the UE from here. */
-		ue_rem(iface_enb_ho_idx);
+		ue_rem(sim_ues[iface_enb_sel_idx].rnti);
 
 		iface_enb_ho_mask = 0;
 		break;
@@ -465,8 +472,8 @@ int iface_enb_handle_add_input(int key)
 	case KEY_RIGHT:
 		iface_enb_add_sel++;
 
-		if(iface_enb_add_sel > 1) {
-			iface_enb_add_sel = 1;
+		if(iface_enb_add_sel > 2) {
+			iface_enb_add_sel = 2;
 		}
 
 		break;
@@ -481,7 +488,8 @@ int iface_enb_handle_add_input(int key)
 		neigh_add_ipv4(
 			(unsigned int)atoi(iface_enb_add_id),
 			0,
-			iface_enb_add_ip);
+			iface_enb_add_ip,
+			atoi(iface_enb_add_port));
 
 		/* Reset all... */
 		memset(
@@ -492,12 +500,17 @@ int iface_enb_handle_add_input(int key)
 			iface_enb_add_ip,
 			0,
 			sizeof(char) * IFACE_ENB_IP_MAX + 1);
+		memset(
+			iface_enb_add_port,
+			0,
+			sizeof(char) * IFACE_ENB_PORT_MAX + 1);
 
-		iface_enb_add_id_idx= 0;
-		iface_enb_add_ip_idx= 0;
+		iface_enb_add_id_idx   = 0;
+		iface_enb_add_ip_idx  = 0;
+		iface_enb_add_port_idx= 0;
 
-		iface_enb_add_sel   = 0;
-		iface_enb_add_mask  = 0;
+		iface_enb_add_sel     = 0;
+		iface_enb_add_mask    = 0;
 
 		break;
 	/* This is the ESCape key; remove this mask. */
@@ -522,6 +535,13 @@ int iface_enb_handle_add_input(int key)
 
 			iface_enb_add_ip[iface_enb_add_ip_idx] = key;
 			iface_enb_add_ip_idx++;
+		} else {
+			if(iface_enb_add_port_idx >= IFACE_ENB_PORT_MAX) {
+				iface_enb_add_port_idx = IFACE_ENB_PORT_MAX - 1;
+			}
+
+			iface_enb_add_port[iface_enb_add_port_idx] = key;
+			iface_enb_add_port_idx++;
 		}
 	}
 
@@ -555,6 +575,14 @@ int iface_enb_handle_add_input(int key)
 			}
 
 			iface_enb_add_ip[iface_enb_add_ip_idx] = 0;
+		} else {
+			iface_enb_add_port_idx--;
+
+			if(iface_enb_add_port_idx < 0) {
+				iface_enb_add_port_idx = 0;
+			}
+
+			iface_enb_add_port[iface_enb_add_port_idx] = 0;
 		}
 	}
 
@@ -580,6 +608,8 @@ int iface_enb_draw_add()
 	move((iface_row / 2) - 2, (iface_col / 2) - (sizeof(ti) / 2));
 	printw("%s", ti);
 
+	/* Id field */
+
 	if(iface_enb_add_sel == 0) {
 		attroff(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
 	}
@@ -591,7 +621,7 @@ int iface_enb_draw_add()
 		attron(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
 	}
 
-	/* 22 spaces for field. */
+	/* Address field */
 
 	if(iface_enb_add_sel == 1) {
 		attroff(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
@@ -601,6 +631,19 @@ int iface_enb_draw_add()
 	printw("IPv4: %-16s", iface_enb_add_ip);
 
 	if(iface_enb_add_sel == 1) {
+		attron(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
+	}
+
+	/* Port field. */
+
+	if(iface_enb_add_sel == 2) {
+		attroff(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
+	}
+
+	move((iface_row / 2), 61);
+	printw("Port: %-6s", iface_enb_add_port);
+
+	if(iface_enb_add_sel == 2) {
 		attron(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
 	}
 

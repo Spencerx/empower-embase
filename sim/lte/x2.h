@@ -22,10 +22,6 @@
 
 #define X2_DEFAULT_PORT		9999
 
-/******************************************************************************
- * Globals used all around the simulator:                                     *
- ******************************************************************************/
-
 /* Type of message that can be recognized on X2 interface. */
 enum x2_message_types {
 	/* Invalid type. */
@@ -61,6 +57,12 @@ struct x2_ho {
 	 */
 	u32 plmnid;
 }__attribute__((packed));
+
+/******************************************************************************
+ * Globals used all around the simulator:                                     *
+ ******************************************************************************/
+
+extern unsigned short sim_x2_port;
 
 /******************************************************************************
  * Public accessible procedures:                                              *
