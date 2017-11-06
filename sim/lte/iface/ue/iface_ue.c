@@ -416,7 +416,7 @@ int iface_ue_draw()
 		sprintf(tmp, "%d", sim_ues[i].rnti);
 		printw("%-10s", tmp);
 
-		sprintf(tmp, "%d", sim_ues[i].plmn);
+		sprintf(tmp, "%x", sim_ues[i].plmn);
 		printw("%-10s", tmp);
 
 		sprintf(tmp, "%"PRIu64"", sim_ues[i].imsi);

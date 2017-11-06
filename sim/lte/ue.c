@@ -42,11 +42,14 @@ u32 sim_ue_dirty = 0;
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
-int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmid, u64 imsi)
+int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 {
 	int i;
 	int e;      /* Existing RNTI detected. */
 	int f = -1; /* Detected free UE slot. */
+	int t;
+
+	char s;
 
 	/* Check for already existing RNTIs, and continue to do us until a free
 	 * one has been found.
@@ -87,8 +90,28 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmid, u64 imsi)
 
 	sim_ues[f].pci   = pci;
 	sim_ues[f].rnti  = rnti;
-	sim_ues[f].plmn  = plmid;
+	//sim_ues[f].plmn  = plmid;
 	sim_ues[f].imsi  = imsi;
+
+	i = 0;
+	t = plmnid / 100000;
+
+	while(plmnid > 0) {
+		/* MCC has 2 digits? */
+		if(i == 8 && t == 0) {
+			sim_ues[f].plmn |= 0xf << i;
+			i += 4;
+
+			continue;
+		}
+
+		s      = plmnid % 10;
+		plmnid = plmnid / 10;
+
+		sim_ues[f].plmn |= s << i;
+
+		i += 4;
+	}
 
 	/* WARN: Hard-coded operating on band 7. */
 	sim_ues[f].bands[0] = 7;
@@ -109,7 +132,7 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmid, u64 imsi)
 	/* Signal that the UEs list is dirty and shall be reported. */
 	sim_ue_dirty = 1;
 
-	LOG_UE("UE %u added; Cell=%d, PLMN=%d, IMSI=%"PRIu64".\n",
+	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",
 		sim_ues[f].pci,
 		sim_ues[f].rnti,
 		sim_ues[f].plmn,
@@ -208,7 +231,9 @@ u32 ue_compute_measurements()
 				1,
 				UE_RRCM_MAX,
 				&m);
-
+#ifdef EBUG_MSG
+			msg_dump(buf, mlen);
+#endif /* EBUG_MSG */
 			em_send(sim_ID, buf, mlen);
 
 			/* Keep it dirty if some error occurs. */
@@ -255,6 +280,9 @@ u32 ue_compute(void)
 				ued);
 
 			if(mlen > 0) {
+#ifdef EBUG_MSG
+				msg_dump(buf, mlen);
+#endif /* EBUG_MSG */
 				em_send(sim_ID, buf, mlen);
 			}
 		} else {

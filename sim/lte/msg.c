@@ -37,6 +37,23 @@
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
+void msg_dump(char * buf, int size)
+{
+	int i;
+
+	LOG_MSG("Dumping message:\n");
+
+	for(i = 0; i < size; i++) {
+		if(i && i % 16 == 0) {
+			LOG_TRAW("\n");
+		}
+
+		LOG_TRAW("%02x ", (unsigned char)buf[i]);
+	}
+
+	LOG_TRAW("\n");
+}
+
 int msg_fill_ue_details(ep_ue_details * ues)
 {
 	int i;
