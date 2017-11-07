@@ -37,11 +37,11 @@
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
-void msg_dump(char * buf, int size)
+void msg_dump(char * msg, char * buf, int size)
 {
 	int i;
 
-	LOG_MSG("Dumping message:\n");
+	LOG_MSG("%s\n", msg);
 
 	for(i = 0; i < size; i++) {
 		if(i && i % 16 == 0) {

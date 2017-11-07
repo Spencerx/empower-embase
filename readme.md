@@ -20,6 +20,8 @@ Running the compiled application will print the help screen on the console, whic
 
 The simulator just needs a console to run and draw the interface, so it can be easily used though an SSH shell.
 
+**Connect to remote controller:** An important option of the simulator is the possibility to specify a remote controller rather than the default, local one. In fact, if no options are specified, the simulator tries to attach to the address 127.0.0.1, on the port 2210. By specifying the options `--ctrl_addr <ip>` and `--ctrl_port <port>` with a custom IP address and port number, you will be able to instruct the simulator to attach to another EmPOWER controller. 
+
 **Customizing cells:** It is possible to create up to 6 cells for a single eNB instance, and this is done by issuing the right argument during application launch. The syntax for such operation is `--cell <pci:DL_earfcn:UL_earfcn:DL_prbs:UL_prbs>`. As you can see you need to specify the Physical Cell Id (PCI), the DL frequency (EARFCN), the DL number of Physical Resource Blocks (PRBs), the Uplink EARFCN and the UL number of PRBs.
 
 **Running multiple instances**: It is possible to run multiple instance of the simulator on the same machine by selecting a proper X2 interface port number during application launch. Default X2 interface for the simulator eNB is `9999`, but by using the command `--x2p <port>` you can actually force the simulator to switch on another one.

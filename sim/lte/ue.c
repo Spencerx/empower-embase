@@ -232,7 +232,7 @@ u32 ue_compute_measurements()
 				UE_RRCM_MAX,
 				&m);
 #ifdef EBUG_MSG
-			msg_dump(buf, mlen);
+			msg_dump("UE measurement dump:", buf, mlen);
 #endif /* EBUG_MSG */
 			em_send(sim_ID, buf, mlen);
 
@@ -281,7 +281,7 @@ u32 ue_compute(void)
 
 			if(mlen > 0) {
 #ifdef EBUG_MSG
-				msg_dump(buf, mlen);
+				msg_dump("UE report dump:", buf, mlen);
 #endif /* EBUG_MSG */
 				em_send(sim_ID, buf, mlen);
 			}

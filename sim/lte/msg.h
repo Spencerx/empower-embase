@@ -33,7 +33,7 @@
  ******************************************************************************/
 
 /* Dump a message */
-void msg_dump(char * buf, int size);
+void msg_dump(char * msg, char * buf, int size);
 
 /* Fill the protocol structure with proper UE data */
 int msg_fill_ue_details(ep_ue_details * ues);

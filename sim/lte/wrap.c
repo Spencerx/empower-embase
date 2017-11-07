@@ -85,6 +85,10 @@ int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 			return -1;
 		}
 
+#ifdef EBUG_MSG
+		msg_dump("Cell setup failure reply:", buf, blen);
+#endif /* EBUG_MSG */
+
 		return em_send(sim_ID, buf, blen);
 	}
 
@@ -107,6 +111,10 @@ int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 		LOG_WRAP("Cannot format cell setup reply!\n");
 		return -1;
 	}
+
+#ifdef EBUG_MSG
+	msg_dump("Cell setup reply:", buf, blen);
+#endif /* EBUG_MSG */
 
 	em_send(sim_ID, buf, blen);
 
@@ -147,6 +155,10 @@ int wrap_enb_setup_request()
 		return -1;
 	}
 
+#ifdef EBUG_MSG
+		msg_dump("eNB setup reply:", buf, blen);
+#endif /* EBUG_MSG */
+
 	em_send(sim_ID, buf, blen);
 
 	return 0;
@@ -183,6 +195,10 @@ int wrap_handover(
 		return 0;
 	}
 
+#ifdef EBUG_MSG
+	msg_dump("Handover reply:", buf, blen);
+#endif /* EBUG_MSG */
+
 	em_send(sim_ID, buf, blen);
 
 	return 0;
@@ -214,7 +230,7 @@ int wrap_ue_measure(
 	char buf[SMALL_BUF] = {0};
 	int  blen;
 
-	LOG_WRAP("Controller module %d requested UE %x measure on freq %d\n",
+	LOG_WRAP("Controller module %d requested UE %d measure on freq %d\n",
 		mod, rnti, earfcn);
 
 	for(i = 0; i < UE_MAX; i++) {
@@ -225,7 +241,7 @@ int wrap_ue_measure(
 
 	/* UE not found */
 	if(i == UE_MAX) {
-		LOG_WRAP("UE %x not found\n", rnti);
+		LOG_WRAP("UE %d not found\n", rnti);
 
 		blen = epf_trigger_uemeas_rep_fail(
 			buf, SMALL_BUF, sim_ID, 0, mod);
@@ -234,6 +250,10 @@ int wrap_ue_measure(
 			LOG_WRAP("Cannot format UE measure reply!\n");
 			return 0;
 		}
+
+#ifdef EBUG_MSG
+		msg_dump("UE measure failure reply:", buf, blen);
+#endif /* EBUG_MSG */
 
 		em_send(sim_ID, buf, blen);
 
@@ -256,6 +276,10 @@ int wrap_ue_measure(
 			LOG_WRAP("Cannot format UE measure reply!\n");
 			return 0;
 		}
+
+#ifdef EBUG_MSG
+		msg_dump("UE measure failure reply:", buf, blen);
+#endif /* EBUG_MSG */
 
 		em_send(sim_ID, buf, blen);
 
