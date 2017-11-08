@@ -126,7 +126,11 @@ void parse_args(int argc, char ** argv)
 		if(strcmp(argv[i], "--cell") == 0) {
 			/* Perform default cell bypass */
 			if(!cb) {
-				sim_phy.nof_cells = 0;
+				sim_phy.nof_cells  = 0;
+
+				sim_mac.DL_prb_max = 0;
+				sim_mac.UL_prb_max = 0;
+
 				cb = 1;
 			}
 
@@ -180,6 +184,14 @@ void parse_args(int argc, char ** argv)
  * Entry point:                                                               *
  ******************************************************************************/
 
+static volatile int ctrl_c = 0;
+
+/* Simple signal handler */
+void signal_handler(int sig)
+{
+	ctrl_c = 1;
+}
+
 int main(int argc, char ** argv) {
 	char logp[256] = {0};
 	//util_mask_all_signals();
@@ -225,6 +237,7 @@ int main(int argc, char ** argv) {
 		/* Start the UI mechanisms. */
 		iface_init();
 	} else {
+		signal(SIGINT, signal_handler);
 		iface_alive = 1;
 	}
 
@@ -248,7 +261,7 @@ int main(int argc, char ** argv) {
 
 		/* Sleep for one second. */
 		sleep(1);
-	} while(iface_alive);
+	} while(iface_alive && !ctrl_c);
 
 out:
 	em_terminate_agent(sim_ID);

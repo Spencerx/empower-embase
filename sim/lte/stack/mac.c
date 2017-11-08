@@ -39,8 +39,6 @@ em_mac sim_mac = {0};
 
 u32 mac_dl_compute()
 {
-	struct timespec now;
-
 	int i;
 	int step = floor((float)sim_mac.DL_prb_max / (float)UE_MAX);
 	/* User PRBs are proportional to number of UEs active */
@@ -50,26 +48,12 @@ u32 mac_dl_compute()
 		sim_mac.DL_prb_in_use = tot;
 	}
 
-
-	clock_gettime(CLOCK_REALTIME, &now);
-
 	for(i=0; i < MAC_REPORT_MAX; i++) {
 		if(!sim_mac.mac_rep[i].mod) {
 			continue;
 		}
 
 		sim_mac.mac_rep[i].DL_acc += tot;
-
-		if(ts_diff_to_ms(now, sim_mac.mac_rep[i].last) >=
-			sim_mac.mac_rep[i].interval) {
-
-			sim_mac.DL_prb_in_use = 0;
-
-			sim_mac.mac_rep[i].last.tv_nsec = now.tv_nsec;
-			sim_mac.mac_rep[i].last.tv_sec  = now.tv_sec;
-
-			/* Send report! */
-		}
 	}
 
 	return SUCCESS;
@@ -77,8 +61,6 @@ u32 mac_dl_compute()
 
 u32 mac_ul_compute()
 {
-	struct timespec now;
-
 	int i;
 	int step = floor((float)sim_mac.UL_prb_max / (float)UE_MAX);
 	/* User PRBs are proportional to number of UEs active */
@@ -88,25 +70,12 @@ u32 mac_ul_compute()
 		sim_mac.UL_prb_in_use = tot;
 	}
 
-	clock_gettime(CLOCK_REALTIME, &now);
-
 	for(i=0; i < MAC_REPORT_MAX; i++) {
 		if(!sim_mac.mac_rep[i].mod) {
 			continue;
 		}
 
 		sim_mac.mac_rep[i].UL_acc += tot;
-
-		if(ts_diff_to_ms(now, sim_mac.mac_rep[i].last) >=
-			sim_mac.mac_rep[i].interval) {
-
-			sim_mac.mac_rep[i].UL_acc = 0;
-
-			sim_mac.mac_rep[i].last.tv_nsec = now.tv_nsec;
-			sim_mac.mac_rep[i].last.tv_sec  = now.tv_sec;
-
-			/* Send report! */
-		}
 	}
 
 
@@ -121,7 +90,14 @@ u32 mac_init()
 {
 	int i;
 
-	for(i=0; i < MAC_REPORT_MAX; i++) {
+	for(i = 0; i < sim_phy.nof_cells; i++) {
+		if(sim_phy.cells[0].pci != 0xffff) {
+			sim_mac.DL_prb_max += sim_phy.cells[0].DL_prb;
+			sim_mac.UL_prb_max += sim_phy.cells[0].UL_prb;
+		}
+	}
+
+	for(i = 0; i < MAC_REPORT_MAX; i++) {
 		clock_gettime(CLOCK_REALTIME, &sim_mac.mac_rep[i].last);
 	}
 
@@ -130,7 +106,17 @@ u32 mac_init()
 
 u32 mac_compute()
 {
-	int ret = mac_ul_compute();
+	int             i;
+	int             ret;
+
+	struct timespec now;
+
+	int             mlen;
+	char            buf[MEDIUM_BUF];
+
+	ep_macrep_det   mac;
+
+	ret = mac_ul_compute();
 
 	if(ret) {
 		return ret;
@@ -138,5 +124,45 @@ u32 mac_compute()
 
 	ret = mac_dl_compute();
 
-	return ret;
+	if(ret) {
+		return ret;
+	}
+
+	clock_gettime(CLOCK_REALTIME, &now);
+
+	for(i=0; i < MAC_REPORT_MAX; i++) {
+		/* Do not consider invalid reports */
+		if(!sim_mac.mac_rep[i].mod) {
+			continue;
+		}
+
+		if(ts_diff_to_ms(sim_mac.mac_rep[i].last, now) >=
+			sim_mac.mac_rep[i].interval) {
+
+			mac.DL_prbs_avg    = 0;
+			mac.DL_prbs_in_use = sim_mac.DL_prb_in_use;
+			mac.DL_prbs_total  = sim_mac.DL_prb_max;
+
+			mac.UL_prbs_avg    = 0;
+			mac.UL_prbs_in_use = sim_mac.UL_prb_in_use;
+			mac.UL_prbs_total  = sim_mac.UL_prb_max;
+
+			mlen = epf_trigger_macrep_rep(
+				buf,
+				MEDIUM_BUF,
+				sim_ID,
+				sim_phy.cells[0].pci,
+				sim_mac.mac_rep[i].mod,
+				&mac);
+#ifdef EBUG_MSG
+			msg_dump("MAC report reply:", buf, blen);
+#endif /* EBUG_MSG */
+			em_send(sim_ID, buf, mlen);
+
+			sim_mac.mac_rep[i].last.tv_nsec = now.tv_nsec;
+			sim_mac.mac_rep[i].last.tv_sec  = now.tv_sec;
+		}
+	}
+
+	return SUCCESS;
 }

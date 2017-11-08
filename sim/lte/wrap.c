@@ -230,8 +230,8 @@ int wrap_ue_measure(
 	char buf[SMALL_BUF] = {0};
 	int  blen;
 
-	LOG_WRAP("Controller module %d requested UE %d measure on freq %d\n",
-		mod, rnti, earfcn);
+	LOG_WRAP("Controller module %d requested UE %d measure %d on freq %d\n",
+		mod, rnti, measure_id, earfcn);
 
 	for(i = 0; i < UE_MAX; i++) {
 		if(sim_ues[i].rnti == rnti) {
@@ -300,6 +300,45 @@ int wrap_ue_measure(
 	return 0;
 }
 
+int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
+{
+	int  i;
+	int  m = -1;
+
+	char buf[SMALL_BUF] = {0};
+	int  blen;
+
+	LOG_WRAP("Controller module %d requested a MAC report\n", mod);
+
+	for(i = 0; i < MAC_REPORT_MAX; i++) {
+		if(sim_mac.mac_rep[i].mod == 0) {
+			m = i;
+		}
+
+		/* Report already there */
+		if(sim_mac.mac_rep[i].mod == mod) {
+			sim_mac.mac_rep[i].interval = interval;
+			return 0;
+		}
+	}
+
+	if(m == -1) {
+		blen = epf_trigger_macrep_rep_fail(
+			buf, SMALL_BUF, sim_ID, 0, mod);
+#ifdef EBUG_MSG
+		msg_dump("MAC report failure reply:", buf, blen);
+#endif /* EBUG_MSG */
+
+		em_send(sim_ID, buf, blen);
+		return 0;
+	}
+
+	sim_mac.mac_rep[m].interval = interval;
+	sim_mac.mac_rep[m].mod      = mod;
+
+	return 0;
+}
+
 /* Operations offered by this technology abstraction module. */
 struct em_agent_ops sim_ops = {
 	.init                   = wrap_init,
@@ -309,4 +348,5 @@ struct em_agent_ops sim_ops = {
 	.handover_UE            = wrap_handover,
 	.ue_report              = wrap_ue_report,
 	.ue_measure             = wrap_ue_measure,
+	.mac_report             = wrap_mac_report,
 };
