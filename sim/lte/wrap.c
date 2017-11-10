@@ -60,6 +60,44 @@ int wrap_release()
 	return 0;
 }
 
+int wrap_disconnected()
+{
+	int i;
+	int j;
+
+	LOG_WRAP("Controller disconnected!\n");
+	LOG_WRAP("    Cleaning UE reporting\n");
+
+	sim_UE_rep_trigger = 0;
+	sim_UE_rep_mod     = 0;
+
+	/*
+	 * Clean sessions IDs for UE and measurements
+	 */
+
+	LOG_WRAP("    Cleaning UE measurement reporting\n");
+
+	for(i = 0; i < UE_MAX; i++) {
+		for(j = 0; j < UE_RRCM_MAX; j++) {
+			sim_ues[i].meas[j].id       = 0;
+			sim_ues[i].meas[j].mod_id   = 0;
+			sim_ues[i].meas[j].tri_id   = 0;
+		}
+	}
+
+	/*
+	 * Clean sessions IDs for MAC reports
+	 */
+
+	LOG_WRAP("    Cleaning MAC reporting\n");
+
+	for(i = 0; i < MAC_REPORT_MAX; i++) {
+		sim_mac.mac_rep[i].mod = 0;
+	}
+
+	return 0;
+}
+
 int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 {
 	int         i;
@@ -291,11 +329,11 @@ int wrap_ue_measure(
 	for(k = 0; k < UE_RRCM_MAX; k++) {
 		if(sim_ues[i].meas[k].earfcn == earfcn) {
 			/* Update meaningful fields */
-			sim_ues[i].meas[j].id       = measure_id;
-			sim_ues[i].meas[j].mod_id   = mod;
-			sim_ues[i].meas[j].tri_id   = trig_id;
+			sim_ues[i].meas[k].id       = measure_id;
+			sim_ues[i].meas[k].mod_id   = mod;
+			sim_ues[i].meas[k].tri_id   = trig_id;
 			/* Send an update of such measure */
-			sim_ues[i].meas[j].dirty    = 1;
+			sim_ues[i].meas[k].dirty    = 1;
 
 			return 0;
 		}
@@ -366,6 +404,7 @@ int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
 struct em_agent_ops sim_ops = {
 	.init                   = wrap_init,
 	.release                = wrap_release,
+	.disconnected           = wrap_disconnected,
 	.cell_setup_request     = wrap_cell_setup_request,
 	.enb_setup_request      = wrap_enb_setup_request,
 	.handover_UE            = wrap_handover,

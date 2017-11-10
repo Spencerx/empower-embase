@@ -25,7 +25,6 @@
 #include "../../plmn.h"
 #include "../iface_priv.h"
 
-
 /* This is the graphical representation of the selected UE */
 s32 iface_ue_sel = 1;
 /* The index to the data is updated during UI drawing */
