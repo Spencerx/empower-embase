@@ -183,7 +183,7 @@ int wrap_handover(
 		blen = epf_single_ho_rep_fail(
 			buf, SMALL_BUF, sim_ID, source_cell, mod);
 
-		return 0;
+		return -1;
 	} else {
 		blen = epf_single_ho_rep(
 			buf, SMALL_BUF, sim_ID, source_cell, mod);
@@ -227,6 +227,7 @@ int wrap_ue_measure(
 {
 	int  i;
 	int  j;
+	int  k;
 	char buf[SMALL_BUF] = {0};
 	int  blen;
 
@@ -248,7 +249,7 @@ int wrap_ue_measure(
 
 		if(blen < 0) {
 			LOG_WRAP("Cannot format UE measure reply!\n");
-			return 0;
+			return -1;
 		}
 
 #ifdef EBUG_MSG
@@ -257,7 +258,7 @@ int wrap_ue_measure(
 
 		em_send(sim_ID, buf, blen);
 
-		return 0;
+		return -1;
 	}
 
 	for(j = 0; j < UE_RRCM_MAX; j++) {
@@ -274,7 +275,7 @@ int wrap_ue_measure(
 
 		if(blen < 0) {
 			LOG_WRAP("Cannot format UE measure reply!\n");
-			return 0;
+			return -1;
 		}
 
 #ifdef EBUG_MSG
@@ -283,19 +284,40 @@ int wrap_ue_measure(
 
 		em_send(sim_ID, buf, blen);
 
-		return 0;
+		return -1;
+	}
+
+	/* Measure was already active inside UE internals? */
+	for(k = 0; k < UE_RRCM_MAX; k++) {
+		if(sim_ues[i].meas[k].earfcn == earfcn) {
+			/* Update meaningful fields */
+			sim_ues[i].meas[j].id       = measure_id;
+			sim_ues[i].meas[j].mod_id   = mod;
+			sim_ues[i].meas[j].tri_id   = trig_id;
+			/* Send an update of such measure */
+			sim_ues[i].meas[j].dirty    = 1;
+
+			return 0;
+		}
 	}
 
 	sim_ues[i].meas[j].id       = measure_id;
 	sim_ues[i].meas[j].mod_id   = mod;
 	sim_ues[i].meas[j].tri_id   = trig_id;
+	/* NOTE:
+	 * Does the UE support such earfcn?
+	 * Add support for bands.
+	 */
 	sim_ues[i].meas[j].earfcn   = earfcn;
 	sim_ues[i].meas[j].interval = interval;
-	/* For the first measurement */
-	sim_ues[i].meas[j].dirty    = 1;
 
-	sim_ues[i].meas[j].rs.rsrp  = PHY_RSRP_LOWER;
-	sim_ues[i].meas[j].rs.rsrq  = PHY_RSRQ_LOWER;
+	if(sim_ues[i].meas[j].rs.rsrp == 0) {
+		sim_ues[i].meas[j].rs.rsrp  = PHY_RSRP_LOWER + 10.0;
+	}
+
+	if(sim_ues[i].meas[j].rs.rsrq == 0) {
+		sim_ues[i].meas[j].rs.rsrq  = PHY_RSRQ_LOWER +  5.0;
+	}
 
 	return 0;
 }
@@ -330,7 +352,8 @@ int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
 #endif /* EBUG_MSG */
 
 		em_send(sim_ID, buf, blen);
-		return 0;
+
+		return -1;
 	}
 
 	sim_mac.mac_rep[m].interval = interval;

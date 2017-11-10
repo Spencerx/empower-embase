@@ -47,9 +47,6 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 	int i;
 	int e;      /* Existing RNTI detected. */
 	int f = -1; /* Detected free UE slot. */
-	int t;
-
-	char s;
 
 	/* Check for already existing RNTIs, and continue to do us until a free
 	 * one has been found.
@@ -90,9 +87,9 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 
 	sim_ues[f].pci   = pci;
 	sim_ues[f].rnti  = rnti;
-	//sim_ues[f].plmn  = plmid;
+	sim_ues[f].plmn  = plmnid;
 	sim_ues[f].imsi  = imsi;
-
+#if 0
 	i = 0;
 	t = plmnid / 100000;
 
@@ -112,18 +109,22 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 
 		i += 4;
 	}
-
+#endif
 	/* WARN: Hard-coded operating on band 7. */
 	sim_ues[f].bands[0] = 7;
 
 	/* Measurements on place in the UE; by default the slot 0 is reserved
 	 * to measurements on the attached cell. */
 	sim_ues[f].meas[0].id      = 0;
+	sim_ues[f].meas[0].tri_id  = -1;
 	sim_ues[f].meas[0].pci     = pci;
 	sim_ues[f].meas[0].earfcn  = earfcn;
+
 	/* By default the level of the reference signal is at half. */
-	sim_ues[f].meas[0].rs.rsrp = (PHY_RSRP_LOWER - PHY_RSRP_HIGHER) / 2;
-	sim_ues[f].meas[0].rs.rsrq = (PHY_RSRQ_LOWER - PHY_RSRQ_HIGHER) / 2;
+	sim_ues[f].meas[0].rs.rsrp =
+		PHY_RSRP_LOWER - (PHY_RSRP_LOWER - PHY_RSRP_HIGHER) / 2;
+	sim_ues[f].meas[0].rs.rsrq =
+		PHY_RSRQ_LOWER - (PHY_RSRQ_LOWER - PHY_RSRQ_HIGHER) / 2;
 
 	/* Force the first feedback feedback. */
 	sim_ues[f].meas[0].dirty   = 1;

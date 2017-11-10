@@ -33,6 +33,7 @@ all:
 		main.c                        \
 		msg.c                         \
 		neigh.c                       \
+		plmn.c                        \
 		ue.c                          \
 		wrap.c                        \
 		x2.c                          \

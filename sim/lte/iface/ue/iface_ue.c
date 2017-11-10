@@ -22,7 +22,9 @@
 #include <string.h>
 
 #include "../../emsim.h"
+#include "../../plmn.h"
 #include "../iface_priv.h"
+
 
 /* This is the graphical representation of the selected UE */
 s32 iface_ue_sel = 1;
@@ -33,15 +35,15 @@ s32 iface_ue_add_mask= 0;
 s32 iface_ue_add_sel = 0;
 
 #define RNTI_MAX 5
-u32 iface_ue_add_rnti_idx = 0;
+s32 iface_ue_add_rnti_idx = 0;
 char iface_ue_add_rnti[RNTI_MAX + 1] = {0};
 
 #define IMSI_MAX 15
-u32 iface_ue_add_imsi_idx = 0;
+s32 iface_ue_add_imsi_idx = 0;
 char iface_ue_add_imsi[IMSI_MAX + 1] = {0};
 
 #define PLMN_MAX 6
-u32 iface_ue_add_plmn_idx = 0;
+s32 iface_ue_add_plmn_idx = 0;
 char iface_ue_add_plmn[PLMN_MAX + 1] = {0};
 
 /******************************************************************************
@@ -51,6 +53,7 @@ char iface_ue_add_plmn[PLMN_MAX + 1] = {0};
 int iface_ue_handle_add_input(int key)
 {
 	s32 e;
+	u32 p;
 
 	switch(key) {
 	case KEY_LEFT:
@@ -78,12 +81,14 @@ int iface_ue_handle_add_input(int key)
 			break;
 		}
 
+		p = plmn_from_string(iface_ue_add_plmn);
+
 		/* Add a new UE with the given details. */
 		e = ue_add(
 			sim_phy.cells[0].pci,
 			sim_phy.cells[0].DL_earfcn,
 			(unsigned short)atoi(iface_ue_add_rnti),
-			(unsigned int)atoi(iface_ue_add_plmn),
+			p,
 			(unsigned long long)atoll(iface_ue_add_imsi));
 
 		if(e < 0) {
