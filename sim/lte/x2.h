@@ -48,6 +48,8 @@ struct x2_head {
 
 /* Information of the hand-over operation. */
 struct x2_ho {
+	/* The old RNTI */
+	u16 rnti;
 	/* UE IMSI unique id.
 	 * NOTE: This is sent in network order.
 	 */

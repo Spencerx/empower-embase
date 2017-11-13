@@ -95,12 +95,30 @@ int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 
 int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 {
+	char           msg[SMALL_BUF] = {0};
+	int            mlen;
+
 	unsigned short rnti = ue_rnti_candidate();
 	struct x2_ho * ho = (struct x2_ho *)(buf + sizeof(struct x2_head));
 
 	LOG_X2("UE %"PRIu64" handed over to us by eNB %d.\n",
 		be64toh(ho->imsi),
 		ntohl(head->base_id));
+
+	mlen = epf_single_ho_rep(
+		msg,
+		SMALL_BUF,
+		sim_ID,
+		sim_phy.cells[0].pci,
+		0,
+		ntohl(head->base_id),
+		ntohs(head->cell_id),
+		ntohs(ho->rnti),
+		rnti);
+
+	if(mlen > 0) {
+		em_send(sim_ID, msg, mlen);
+	}
 
 	ue_add(
 		sim_phy.cells[0].pci,
@@ -191,10 +209,14 @@ int x2_hand_over(u16 rnti, u32 enb)
 	}
 
 	hdr->base_id = htonl(sim_ID);
+	hdr->cell_id = htons(sim_phy.cells[0].pci);
 	hdr->type    = X2_MSG_HANDOVER;
 
+	ho->rnti     = htons(sim_ues[u].rnti);
 	ho->imsi     = htobe64(sim_ues[u].imsi);
 	ho->plmnid   = htonl(sim_ues[u].plmn);
+
+	LOG_X2("Handing over UE %x to eNB %d\n", rnti, enb);
 
 	x2_send(
 		buf,
@@ -280,7 +302,7 @@ u32 x2_compute()
 				sizeof(struct x2_head));
 
 			if(ret < 0) {
-				LOG_X2("Failed to present to neighbor cells.\n");
+			       LOG_X2("Failed to present to neighbor cells.\n");
 			}
 		}
 	}

@@ -224,7 +224,15 @@ int wrap_handover(
 		return -1;
 	} else {
 		blen = epf_single_ho_rep(
-			buf, SMALL_BUF, sim_ID, source_cell, mod);
+			buf,
+			SMALL_BUF,
+			sim_ID,
+			source_cell,
+			mod,
+			sim_ID,
+			source_cell,
+			rnti,
+			0);
 
 		ue_rem(rnti);
 	}
