@@ -139,12 +139,10 @@ u32 mac_compute()
 		if(ts_diff_to_ms(sim_mac.mac_rep[i].last, now) >=
 			sim_mac.mac_rep[i].interval) {
 
-			mac.DL_prbs_avg    = 0;
-			mac.DL_prbs_in_use = sim_mac.DL_prb_in_use;
+			mac.DL_prbs_used   = sim_mac.mac_rep[i].DL_acc;
 			mac.DL_prbs_total  = sim_mac.DL_prb_max;
 
-			mac.UL_prbs_avg    = 0;
-			mac.UL_prbs_in_use = sim_mac.UL_prb_in_use;
+			mac.UL_prbs_used   = sim_mac.mac_rep[i].UL_acc;
 			mac.UL_prbs_total  = sim_mac.UL_prb_max;
 
 			mlen = epf_trigger_macrep_rep(
