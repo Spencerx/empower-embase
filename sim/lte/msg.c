@@ -83,8 +83,10 @@ int msg_fill_ue_measurements(em_ue_rrcm * uem, ep_ue_measure * m)
 {
 	m->meas_id = uem->id;
 	m->pci     = uem->pci;
-	m->rsrp    = uem->rs.rsrp;
-	m->rsrq    = uem->rs.rsrq;
+        /* RSRP value to RSRP index; less or more */
+	m->rsrp    = ((int16_t)uem->rs.rsrp) + 140;
+        /* RSRQ value to RSRQ index; less or more */
+	m->rsrq    = ((int16_t)uem->rs.rsrq) + 19;
 
 	return 0;
 }
