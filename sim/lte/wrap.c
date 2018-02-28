@@ -215,37 +215,22 @@ int wrap_handover(
 
 	LOG_WRAP("UE handover requested for RNTI %x\n", rnti);
 
-	if(x2_hand_over(rnti, target_enb)) {
+	if (x2_hand_over(rnti, target_enb)) {
 		LOG_WRAP("Failed to hand RNTI %x over\n", rnti);
 
 		blen = epf_single_ho_rep_fail(
 			buf, SMALL_BUF, sim_ID, source_cell, mod);
 
+		if (blen < 0) {
+			return -1;
+		}
+
+		em_send(sim_ID, buf, blen);
+
 		return -1;
-	} else {
-		blen = epf_single_ho_rep(
-			buf,
-			SMALL_BUF,
-			sim_ID,
-			source_cell,
-			mod,
-			sim_ID,
-			source_cell,
-			rnti,
-			0);
-
-		ue_rem(rnti);
 	}
 
-	if(blen < 0) {
-		return 0;
-	}
-
-#ifdef EBUG_MSG
-	msg_dump("Handover reply:", buf, blen);
-#endif /* EBUG_MSG */
-
-	em_send(sim_ID, buf, blen);
+	ue_rem(rnti);
 
 	return 0;
 }
