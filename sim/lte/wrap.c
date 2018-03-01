@@ -219,7 +219,15 @@ int wrap_handover(
 		LOG_WRAP("Failed to hand RNTI %x over\n", rnti);
 
 		blen = epf_single_ho_rep_fail(
-			buf, SMALL_BUF, sim_ID, source_cell, mod);
+			buf, 
+			SMALL_BUF, 
+			sim_ID, 
+			source_cell, 
+			mod,
+			target_enb,
+			target_cell,
+			rnti,
+			0);
 
 		if (blen < 0) {
 			return -1;
