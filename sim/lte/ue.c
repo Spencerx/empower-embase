@@ -184,10 +184,12 @@ u32 ue_compute_measurements()
 {
 	int           i;
 	int           j;
+	int           k;
+	int           mi; /* Measure index */
 
 	int           mlen;
 	char          buf[MEDIUM_BUF];
-	ep_ue_measure m;
+	ep_ue_measure m[UE_RRCM_MAX];
 
 	/* Do not compute on disconnected controller. */
 	if(!em_is_connected(sim_ID)) {
@@ -220,8 +222,32 @@ u32 ue_compute_measurements()
 				continue;
 			}
 
-			msg_fill_ue_measurements(
-				&sim_ues[i].meas[j], &m);
+			mi = 0;
+
+			//msg_fill_ue_measurements(
+			//	&sim_ues[i].meas[j], m);
+
+			m[mi].meas_id = sim_ues[i].meas[j].id;
+			m[mi].pci     = sim_ues[i].meas[j].pci;
+			m[mi].rsrp    = sim_ues[i].meas[j].rs.rsrp;
+			m[mi].rsrq    = sim_ues[i].meas[j].rs.rsrq;
+
+			mi++;
+
+			/* Look in every neighbor for measurements */
+			for(k = 0 ; k < NEIGH_MAX; k++) {
+				/* Skip neighbor */
+				if(sim_neighs[k].id == NEIGH_INVALID_ID) {
+					continue;
+				}
+
+				m[mi].meas_id = sim_ues[i].meas[j].id;
+				m[mi].pci     = (u16)sim_neighs[k].pci;
+				m[mi].rsrp    = sim_neighs[k].rs[i].rsrp;
+				m[mi].rsrq    = sim_neighs[k].rs[i].rsrq;
+
+				mi++;
+			}
 
 			mlen = epf_trigger_uemeas_rep(
 				buf,
@@ -229,9 +255,9 @@ u32 ue_compute_measurements()
 				sim_ID,
 				sim_ues[i].meas[j].pci,
 				sim_ues[i].meas[j].mod_id,
-				1,
+				mi,
 				UE_RRCM_MAX,
-				&m);
+				m);
 #ifdef EBUG_MSG
 			msg_dump("UE measurement dump:", buf, mlen);
 #endif /* EBUG_MSG */

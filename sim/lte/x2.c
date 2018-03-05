@@ -71,8 +71,8 @@ int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 			f = i;
 
 			/* The cell id sent to us is always the most updated. */
-			if(sim_neighs[i].pci != ntohl(head->cell_id)) {
-				sim_neighs[i].pci = ntohl(head->cell_id);
+			if(sim_neighs[i].pci != ntohs(head->cell_id)) {
+				sim_neighs[i].pci = ntohs(head->cell_id);
 			}
 
 			/* Update the last time we seen it. */
@@ -292,7 +292,7 @@ u32 x2_compute()
 		/* Only if its a valid one. */
 		if(sim_neighs[i].id) {
 			j.base_id = htonl(sim_ID);
-			j.cell_id = htonl(sim_phy.cells[0].pci);
+			j.cell_id = htons(sim_phy.cells[0].pci);
 			j.type = X2_MSG_ALIVE;
 
 			/* Send the 'I'm alive' message. */
