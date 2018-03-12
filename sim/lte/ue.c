@@ -144,7 +144,7 @@ int ue_rem(u16 rnti)
 	int i;
 	int j;
 
-	for(i = 0; i < sim_nof_ues; i++) {
+	for(i = 0; i < UE_MAX; i++) {
 		if(sim_ues[i].rnti == rnti) {
 			sim_nof_ues--;
 
