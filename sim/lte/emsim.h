@@ -23,7 +23,6 @@
 #include "err.h"
 #include "iface.h"
 #include "log.h"
-#include "msg.h"
 #include "neigh.h"
 #include "stack.h"
 #include "ue.h"

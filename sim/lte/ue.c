@@ -82,9 +82,6 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 		return ERR_UE_ADD_FULL;
 	}
 
-	/* Clean everything before the use. */
-	memset(&sim_ues[f], 0, sizeof(em_ue));
-
 	sim_ues[f].pci   = pci;
 	sim_ues[f].rnti  = rnti;
 	sim_ues[f].plmn  = plmnid;
@@ -150,7 +147,15 @@ int ue_rem(u16 rnti)
 	for(i = 0; i < sim_nof_ues; i++) {
 		if(sim_ues[i].rnti == rnti) {
 			sim_nof_ues--;
-			memset(&sim_ues[i], 0, sizeof(em_ue));
+
+			sim_ues[i].rnti = UE_RNTI_INVALID;
+
+			/* Reset RRC measurements for that UE */
+			for(j = 0; j < UE_RRCM_MAX; j++) {
+				sim_ues[i].meas[j].id     = 0;
+				sim_ues[i].meas[j].tri_id = 0;
+				sim_ues[i].meas[j].mod_id = 0;
+			}
 
 			/* Reset the reference signal measured for every
 			 * neighbor cell.
@@ -185,10 +190,11 @@ u32 ue_compute_measurements()
 	int           i;
 	int           j;
 	int           k;
-	int           mi; /* Measure index */
 
 	int           mlen;
 	char          buf[MEDIUM_BUF];
+
+	int           mi;
 	ep_ue_measure m[UE_RRCM_MAX];
 
 	/* Do not compute on disconnected controller. */
@@ -273,10 +279,12 @@ u32 ue_compute_measurements()
 
 u32 ue_compute(void)
 {
-	int mlen;
+	int  i;
+
+	int  mlen;
 	char buf[MEDIUM_BUF];
 
-	int nof_ues;
+	int  nof_ues;
 	ep_ue_details ued[32];
 
 	/* Do not compute on disconnected controller. */
@@ -290,31 +298,51 @@ u32 ue_compute(void)
 	 */
 	if(sim_ue_dirty) {
 		/* Check every time is the trigger is still there. */
-		if(em_has_trigger(
+		if(!em_has_trigger(
 			sim_ID,
-			sim_UE_rep_trigger)) {
+			sim_UE_rep_trigger))  {
 
-			nof_ues = msg_fill_ue_details(ued);
-
-			mlen = epf_trigger_uerep_rep(
-				buf,
-				MEDIUM_BUF,
-				sim_ID,
-				0,
-				sim_UE_rep_mod,
-				nof_ues,
-				sim_UE_rep_max,
-				ued);
-
-			if(mlen > 0) {
-#ifdef EBUG_MSG
-				msg_dump("UE report dump:", buf, mlen);
-#endif /* EBUG_MSG */
-				em_send(sim_ID, buf, mlen);
-			}
-		} else {
 			LOG_UE("UEs report trigger %u not present.\n",
 				sim_UE_rep_trigger);
+
+			return 0;
+		}
+
+		for(i = 0, nof_ues = 0; i < UE_MAX; i++) {
+			if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+				continue;
+			}
+
+			/* We have a limited amount of RRC meas. to send */
+			if(nof_ues >= sim_UE_rep_max) {
+				break;
+			}
+
+			ued[nof_ues].rnti = sim_ues[i].rnti;
+			ued[nof_ues].imsi = sim_ues[i].imsi;
+			ued[nof_ues].plmn = sim_ues[i].plmn;
+			ued[nof_ues].pci  = sim_ues[i].pci;
+
+			nof_ues++;
+		}
+
+		//nof_ues = msg_fill_ue_details(ued);
+
+		mlen = epf_trigger_uerep_rep(
+			buf,
+			MEDIUM_BUF,
+			sim_ID,
+			sim_phy.cells[0].pci,
+			sim_UE_rep_mod,
+			nof_ues,
+			sim_UE_rep_max,
+			ued);
+
+		if(mlen > 0) {
+#ifdef EBUG_MSG
+			msg_dump("UE report dump:", buf, mlen);
+#endif /* EBUG_MSG */
+			em_send(sim_ID, buf, mlen);
 		}
 
 		/* No dirty anymore.
