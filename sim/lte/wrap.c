@@ -213,10 +213,10 @@ int wrap_handover(
 	char        buf[SMALL_BUF] = {0};
 	int         blen;
 
-	LOG_WRAP("UE handover requested for RNTI %x\n", rnti);
+	LOG_WRAP("UE handover requested for RNTI %d\n", rnti);
 
 	if (x2_hand_over(rnti, target_enb)) {
-		LOG_WRAP("Failed to hand RNTI %x over\n", rnti);
+		LOG_WRAP("Failed to hand RNTI %d over\n", rnti);
 
 		blen = epf_single_ho_rep_fail(
 			buf, 
@@ -224,8 +224,8 @@ int wrap_handover(
 			sim_ID, 
 			source_cell, 
 			mod,
-			target_enb,
-			target_cell,
+			sim_ID,
+			source_cell,
 			rnti,
 			0);
 
@@ -238,7 +238,7 @@ int wrap_handover(
 		return -1;
 	}
 
-	ue_rem(rnti);
+	ue_rem(rnti, 0);
 
 	return 0;
 }

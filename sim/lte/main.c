@@ -35,6 +35,8 @@
 
 /* Id of the agent associated with the simulator. */
 u32 sim_ID = 0;
+/* 1 second of default interval time */
+u32 sim_loop_int = 1000;
 /* Headless start? */
 u32 sim_hl = 0;
 
@@ -259,8 +261,8 @@ int main(int argc, char ** argv) {
 		 */
 		x2_compute();
 
-		/* Sleep for one second. */
-		sleep(1);
+		/* Sleep for configurable usec */
+		usleep(sim_loop_int * 1000);
 	} while(iface_alive && !ctrl_c);
 
 out:

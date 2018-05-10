@@ -42,7 +42,7 @@ u32 sim_ue_dirty = 0;
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
-int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
+int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi, int rep)
 {
 	int i;
 	int e;      /* Existing RNTI detected. */
@@ -55,8 +55,20 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 		e = 0;
 
 		for(i = 0; i < UE_MAX; i++) {
-			if(f == -1 && sim_ues[i].rnti == UE_RNTI_INVALID) {
-				f = i;
+			/* Do not check invalid RNTIs; they can have bad data */
+			if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+				/* Selects an empty slot */
+				if(f == -1) {
+					f = i;
+				}
+
+				continue;
+			}
+
+			/* Two UE with the same IMSI are not allowed! */
+			if(sim_ues[i].imsi == imsi) {
+				LOG_UE("IMSI already present; cannot add\n");
+				return ERR_UE_ADD_EXISTS;
 			}
 
 			if(sim_ues[i].rnti == rnti) {
@@ -68,17 +80,12 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 					break;
 				}
 			}
-
-			/* Two UE with the same IMSI are not allowed! */
-			if(sim_ues[i].imsi == imsi) {
-				return ERR_UE_ADD_EXISTS;
-			}
 		}
 	} while(e);
 
 	/* No slots available. */
 	if(f < 0) {
-		LOG_UE("No more free UE slots available.\n");
+		LOG_UE("No more free UE slots available; cannot add\n");
 		return ERR_UE_ADD_FULL;
 	}
 
@@ -86,27 +93,7 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 	sim_ues[f].rnti  = rnti;
 	sim_ues[f].plmn  = plmnid;
 	sim_ues[f].imsi  = imsi;
-#if 0
-	i = 0;
-	t = plmnid / 100000;
 
-	while(plmnid > 0) {
-		/* MCC has 2 digits? */
-		if(i == 8 && t == 0) {
-			sim_ues[f].plmn |= 0xf << i;
-			i += 4;
-
-			continue;
-		}
-
-		s      = plmnid % 10;
-		plmnid = plmnid / 10;
-
-		sim_ues[f].plmn |= s << i;
-
-		i += 4;
-	}
-#endif
 	/* WARN: Hard-coded operating on band 7. */
 	sim_ues[f].bands[0] = 7;
 
@@ -127,19 +114,22 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 	sim_ues[f].meas[0].dirty   = 1;
 
 	sim_nof_ues++;
-	/* Signal that the UEs list is dirty and shall be reported. */
-	sim_ue_dirty = 1;
 
-	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",
-		sim_ues[f].pci,
+	if(rep) {
+		/* Signal that the UEs list is dirty and shall be reported. */
+		sim_ue_dirty = 1;
+	}
+
+	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64"\n",
 		sim_ues[f].rnti,
+		sim_ues[f].pci,
 		sim_ues[f].plmn,
 		sim_ues[f].imsi);
 
 	return f;
 }
 
-int ue_rem(u16 rnti)
+int ue_rem(u16 rnti, int rep)
 {
 	int i;
 	int j;
@@ -149,6 +139,9 @@ int ue_rem(u16 rnti)
 			sim_nof_ues--;
 
 			sim_ues[i].rnti = UE_RNTI_INVALID;
+			sim_ues[i].imsi = 0;
+			sim_ues[i].plmn = 0;
+			sim_ues[i].pci  = 0;
 
 			/* Reset RRC measurements for that UE */
 			for(j = 0; j < UE_RRCM_MAX; j++) {
@@ -165,13 +158,15 @@ int ue_rem(u16 rnti)
 				sim_neighs[j].rs[i].rsrq = PHY_RSRQ_LOWER;
 			}
 
-			LOG_UE("UE %u removed.\n", rnti);
+			LOG_UE("UE %u removed\n", rnti);
 
 			break;
 		}
 	}
 
-	sim_ue_dirty = 1;
+	if(rep) {
+		sim_ue_dirty = 1;
+	}
 
 	return SUCCESS;
 }
@@ -301,9 +296,6 @@ u32 ue_compute(void)
 		if(!em_has_trigger(
 			sim_ID,
 			sim_UE_rep_trigger))  {
-
-			LOG_UE("UEs report trigger %u not present.\n",
-				sim_UE_rep_trigger);
 
 			return 0;
 		}

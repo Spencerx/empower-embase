@@ -44,7 +44,7 @@
 #define UE_RNTI_SI			0xffff
 
 /* Max number of UE taken in account. */
-#define UE_MAX				10
+#define UE_MAX				32
 
 /* Maximum number of supported bands. */
 #define UE_BAND_MAX			32
@@ -124,7 +124,19 @@ extern u32 sim_ue_dirty;
 /* Adds a new UE in the managed ones.
  * Returns the UE slot index on success, otherwise a negative error code.
  */
-int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmid, u64 imsi);
+int ue_add(
+	/* PCI of the UE */
+	u16 pci,
+	/* Frequency of the UE carrier */
+	u32 earfcn,
+	/* RNTI of the UE */
+	u16 rnti,
+	/* PLMN of the UE */
+	u32 plmid,
+	/* IMSI of the UE */
+	u64 imsi,
+	/* Triggers an UE report? */
+	int rep);
 
 /* Simulates the UE attached to this cell. This procedure is part of the
  * simulator computation loops, which updates status and perform custom
@@ -137,7 +149,11 @@ u32 ue_compute(void);
 /* Removes a managed UE by looking for its RNTI.
  * Returns 0 on success, otherwise a negative error code.
  */
-int ue_rem(u16 rnti);
+int ue_rem(
+	/* RNTI of the UE */
+	u16 rnti,
+	/* Triggers an eventual UE report? */
+	int rep);
 
 /* Returns a possible candidate for an UE RNTI.
  */

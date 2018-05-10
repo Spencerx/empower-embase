@@ -39,6 +39,8 @@
 
 /* Id of the agent associated with the simulator. */
 extern u32 sim_ID;
+/* Interval in ms of the main loop */
+extern u32 sim_loop_int;
 
 /******************************************************************************
  * Globals utilities:                                                         *
