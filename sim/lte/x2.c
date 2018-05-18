@@ -95,11 +95,14 @@ int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 
 int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 {
-	char           msg[SMALL_BUF] = {0};
-	int            mlen;
-	int i;
-	unsigned short rnti = ue_rnti_candidate();
-	struct x2_ho * ho = (struct x2_ho *)(buf + sizeof(struct x2_head));
+	char		msg[SMALL_BUF] = {0};
+	int		mlen;
+
+	int 		i;
+	int		j;
+
+	unsigned short 	rnti = ue_rnti_candidate();
+	struct x2_ho * 	ho = (struct x2_ho *)(buf + sizeof(struct x2_head));
 
 	/* Problem during receiving an HO from neighbor? */
 	if((i = ue_add(
@@ -127,13 +130,22 @@ int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 	if(mlen > 0) {
 		em_send(sim_ID, msg, mlen);
 	}
-//#if 0
-	int j;
+
+	/* Preserve the measurement done by the UE before HO. */
+	sim_ues[i].meas[0].rs.rsrp = (s16)(ntohs(ho->t_rsrp));
+	sim_ues[i].meas[0].rs.rsrq = (s16)(ntohs(ho->t_rsrq));
 
 	for(j = 0; j < NEIGH_MAX; j++) {
-		sim_neighs[j].rs[i].rsrq = -9;
+		/* Preserve the measurement done by the UE before HO. */
+		if(sim_neighs[j].pci == ntohs(head->cell_id)) {
+			sim_neighs[j].rs[i].rsrq = (s16)(ntohs(ho->s_rsrq));
+			sim_neighs[j].rs[i].rsrp = (s16)(ntohs(ho->s_rsrp));
+		} else {
+			sim_neighs[j].rs[i].rsrq = PHY_RSRQ_LOWER;
+			sim_neighs[j].rs[i].rsrp = PHY_RSRP_LOWER;
+		}
 	}
-//#endif
+
 	LOG_X2("UE with IMSI=%"PRIu64" handed over to us by eNB %d.\n",
 		be64toh(ho->imsi),
 		ntohl(head->base_id));
@@ -256,6 +268,11 @@ int x2_hand_over(u16 rnti, u32 enb)
 	ho->rnti     = htons(sim_ues[u].rnti);
 	ho->imsi     = htobe64(sim_ues[u].imsi);
 	ho->plmnid   = htonl(sim_ues[u].plmn);
+
+	ho->s_rsrp   = htons((s16)(sim_ues[u].meas[0].rs.rsrp));
+	ho->s_rsrq   = htons((s16)(sim_ues[u].meas[0].rs.rsrq));
+	ho->t_rsrp   = htons((s16)(sim_neighs[e].rs[u].rsrp));
+	ho->t_rsrq   = htons((s16)(sim_neighs[e].rs[u].rsrq));
 
 	LOG_X2("Handing over UE %x to eNB %d\n", rnti, enb);
 

@@ -58,6 +58,14 @@ struct x2_ho {
 	 * NOTE: This is sent in network order.
 	 */
 	u32 plmnid;
+	/* RSRP of the source cell. */
+	s16 s_rsrp;
+	/* RSRQ of the source cell. */
+	s16 s_rsrq;
+	/* RSRP of the target cell. */
+	s16 t_rsrp;
+	/* RSRQ of the target cell. */
+	s16 t_rsrq;
 }__attribute__((packed));
 
 /******************************************************************************
