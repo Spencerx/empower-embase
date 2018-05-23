@@ -130,8 +130,8 @@ void parse_args(int argc, char ** argv)
 			if(!cb) {
 				sim_phy.nof_cells  = 0;
 
-				sim_mac.DL_prb_max = 0;
-				sim_mac.UL_prb_max = 0;
+				sim_mac.DL.prb_max = 0;
+				sim_mac.UL.prb_max = 0;
 
 				cb = 1;
 			}

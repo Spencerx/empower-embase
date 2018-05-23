@@ -123,10 +123,10 @@ u32 mac_dl_compute()
 	/* Actually used PRBS */
 	int prbu = 0;
 	/* Total PRB left */
-	int prbt = sim_mac.DL_prb_max;
+	int prbt = sim_mac.DL.prb_max;
 
 	if(sim_nof_ues) {
-		prbs = sim_mac.DL_prb_max / sim_nof_ues;
+		prbs = sim_mac.DL.prb_max / sim_nof_ues;
 	} else {
 		prbs = 0;
 	}
@@ -200,8 +200,8 @@ u32 mac_dl_compute()
 	}
 
 	/* Update the amount of PRBS used for this sub-frame */
-	if(sim_mac.DL_prb_in_use != prbu) {
-		sim_mac.DL_prb_in_use = prbu;
+	if(sim_mac.DL.prb_in_use != prbu) {
+		sim_mac.DL.prb_in_use = prbu;
 	}
 
 	/* Update the amount of PRBS used overall */
@@ -232,10 +232,10 @@ u32 mac_ul_compute()
 	/* Actually used PRBS */
 	int prbu = 0;
 	/* Total PRB left */
-	int prbt = sim_mac.UL_prb_max;
+	int prbt = sim_mac.UL.prb_max;
 
 	if(sim_nof_ues) {
-		prbs = sim_mac.UL_prb_max / sim_nof_ues;
+		prbs = sim_mac.UL.prb_max / sim_nof_ues;
 	} else {
 		prbs = 0;
 	}
@@ -269,7 +269,7 @@ u32 mac_ul_compute()
 	}
 
 	if(sim_mac.UL_prb_in_use != prbu) {
-		sim_mac.UL_prb_in_use = prbu;
+		sim_mac.UL.prb_in_use = prbu;
 	}
 
 	for(i=0; i < MAC_REPORT_MAX; i++) {

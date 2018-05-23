@@ -42,128 +42,143 @@ u32 sim_ue_dirty = 0;
  * Public accessible procedures:                                              *
  ******************************************************************************/
 
-int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
+int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi, int rep)
 {
-        int i;
-        int e;      /* Existing RNTI detected. */
-        int f = -1; /* Detected free UE slot. */
+	int i;
+	int e;      /* Existing RNTI detected. */
+	int f = -1; /* Detected free UE slot. */
 
-        /* Check for already existing RNTIs, and continue to do us until a free
-         * one has been found.
-         */
-        do {
-                e = 0;
+	/* Check for already existing RNTIs, and continue to do us until a free
+	 * one has been found.
+	 */
+	do {
+		e = 0;
 
-                for(i = 0; i < UE_MAX; i++) {
-                        if(f == -1 && sim_ues[i].rnti == UE_RNTI_INVALID) {
-                                f = i;
-                        }
+		for(i = 0; i < UE_MAX; i++) {
+			if(f == -1 && sim_ues[i].rnti == UE_RNTI_INVALID) {
+				f = i;
+			}
 
-                        if(sim_ues[i].rnti == rnti) {
-                                e    = 1;
-                                rnti = ue_rnti_candidate();
+			if(sim_ues[i].rnti == rnti) {
+				e    = 1;
+				rnti = ue_rnti_candidate();
 
-                                /* Do not break here; we need to find an 'f'*/
-                                if(f >= 0) {
-                                        break;
-                                }
-                        }
+				/* Do not break here; we need to find an 'f'*/
+				if(f >= 0) {
+					break;
+				}
+			}
 
-                        /* Two UE with the same IMSI are not allowed! */
-                        if(sim_ues[i].imsi == imsi) {
-                                return ERR_UE_ADD_EXISTS;
-                        }
-                }
-        } while(e);
+			/* Two UE with the same IMSI are not allowed! */
+			if(sim_ues[i].imsi == imsi) {
+				return ERR_UE_ADD_EXISTS;
+			}
+		}
+	} while(e);
 
-        /* No slots available. */
-        if(f < 0) {
-                LOG_UE("No more free UE slots available.\n");
-                return ERR_UE_ADD_FULL;
-        }
+	/* No slots available. */
+	if(f < 0) {
+		LOG_UE("No more free UE slots available.\n");
+		return ERR_UE_ADD_FULL;
+	}
 
-        /* Clean everything before the use. */
-        memset(&sim_ues[f], 0, sizeof(em_ue));
+	/* Clean everything before the use. */
+	memset(&sim_ues[f], 0, sizeof(em_ue));
 
-        sim_ues[f].pci   = pci;
-        sim_ues[f].rnti  = rnti;
-        sim_ues[f].plmn  = plmnid;
-        sim_ues[f].imsi  = imsi;
+	sim_ues[f].pci   = pci;
+	sim_ues[f].rnti  = rnti;
+	sim_ues[f].plmn  = plmnid;
+	sim_ues[f].imsi  = imsi;
 
-        /* WARN: Hard-coded operating on band 7. */
-        sim_ues[f].bands[0]        = 7;
+	/* WARN: Hard-coded operating on band 7. */
+	sim_ues[f].bands[0]        = 7;
 
-        /* Measurements on place in the UE; by default the slot 0 is reserved
-         * to measurements on the attached cell. */
-        sim_ues[f].meas[0].id      = 0;
-        sim_ues[f].meas[0].tri_id  = -1;
-        sim_ues[f].meas[0].pci     = pci;
-        sim_ues[f].meas[0].earfcn  = earfcn;
+	/* Measurements on place in the UE; by default the slot 0 is reserved
+	 * to measurements on the attached cell. */
+	sim_ues[f].meas[0].id      = 0;
+	sim_ues[f].meas[0].tri_id  = -1;
+	sim_ues[f].meas[0].pci     = pci;
+	sim_ues[f].meas[0].earfcn  = earfcn;
 
-        /* By default the level of the reference signal is at half. */
-        sim_ues[f].meas[0].rs.rsrp =
-                PHY_RSRP_LOWER - (PHY_RSRP_LOWER - PHY_RSRP_HIGHER) / 2;
-        sim_ues[f].meas[0].rs.rsrq =
-                PHY_RSRQ_LOWER - (PHY_RSRQ_LOWER - PHY_RSRQ_HIGHER) / 2;
+	/* By default the level of the reference signal is at half. */
+	sim_ues[f].meas[0].rs.rsrp =
+		PHY_RSRP_LOWER - (PHY_RSRP_LOWER - PHY_RSRP_HIGHER) / 2;
+	sim_ues[f].meas[0].rs.rsrq =
+		PHY_RSRQ_LOWER - (PHY_RSRQ_LOWER - PHY_RSRQ_HIGHER) / 2;
 
-        /* Force the first feedback feedback. */
-        sim_ues[f].meas[0].dirty   = 1;
+	/* Force the first feedback feedback. */
+	sim_ues[f].meas[0].dirty   = 1;
 
-        sim_nof_ues++;
-        /* Signal that the UEs list is dirty and shall be reported. */
-        sim_ue_dirty = 1;
+	sim_nof_ues++;
 
-        if(sim_mac.ran) {
-                /* Add to the default user */
-                ran_add_user(sim_ues[f].rnti, RAN_TENANT_DEFAULT);
-        }
+	if(rep) {
+		/* Signal that the UEs list is dirty and shall be reported. */
+		sim_ue_dirty = 1;
+	}
 
-        LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",
-                sim_ues[f].rnti,
-                sim_ues[f].pci,
-                sim_ues[f].plmn,
-                sim_ues[f].imsi);
+	if(sim_mac.ran) {
+		/* Add to the default user */
+		ran_add_user(sim_ues[f].rnti, RAN_TENANT_DEFAULT);
+	}
 
-        return f;
+	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",
+		sim_ues[f].rnti,
+		sim_ues[f].pci,
+		sim_ues[f].plmn,
+		sim_ues[f].imsi);
+
+	return f;
 }
 
-int ue_rem(u16 rnti)
+int ue_rem(u16 rnti, int rep)
 {
-        int i;
-        int j;
+	int i;
+	int j;
 
-        for(i = 0; i < sim_nof_ues; i++) {
-                if(sim_ues[i].rnti == rnti) {
-                        sim_nof_ues--;
-                        memset(&sim_ues[i], 0, sizeof(em_ue));
+	for(i = 0; i < UE_MAX; i++) {
+		if(sim_ues[i].rnti == rnti) {
+			sim_nof_ues--;
 
-                        /* Reset the reference signal measured for every
-                         * neighbor cell.
-                         */
-                        for(j = 0; j < NEIGH_MAX; j++) {
-                                sim_neighs[j].rs[i].rsrp = PHY_RSRP_LOWER;
-                                sim_neighs[j].rs[i].rsrq = PHY_RSRQ_LOWER;
-                        }
+			sim_ues[i].rnti = UE_RNTI_INVALID;
+			sim_ues[i].imsi = 0;
+			sim_ues[i].plmn = 0;
+			sim_ues[i].pci  = 0;
 
-                        if (sim_mac.ran) {
-                                /* Add to the default user */
-                                ran_rem_user(rnti, 0);
-                        }
+			/* Reset RRC measurements for that UE */
+			for(j = 0; j < UE_RRCM_MAX; j++) {
+				sim_ues[i].meas[j].id     = 0;
+				sim_ues[i].meas[j].tri_id = 0;
+				sim_ues[i].meas[j].mod_id = 0;
+			}
 
-                        LOG_UE("UE %u removed.\n", rnti);
+			/* Reset the reference signal measured for every
+			 * neighbor cell.
+			 */
+			for(j = 0; j < NEIGH_MAX; j++) {
+				sim_neighs[j].rs[i].rsrp = PHY_RSRP_LOWER;
+				sim_neighs[j].rs[i].rsrq = PHY_RSRQ_LOWER;
+			}
 
-                        break;
-                }
-        }
+			if (sim_mac.ran) {
+				ran_rem_user(rnti, 0);
+			}
 
-        sim_ue_dirty = 1;
+			LOG_UE("UE %u removed\n", rnti);
 
-        return SUCCESS;
+			break;
+		}
+	}
+
+	if(rep) {
+		sim_ue_dirty = 1;
+	}
+
+	return SUCCESS;
 }
 
 u16 ue_rnti_candidate(void)
 {
-        return (u16)(rand() % (UE_RNTI_RESERVED - 1)) + 1;
+	return (u16)(rand() % (UE_RNTI_RESERVED - 1)) + 1;
 }
 
 /******************************************************************************
@@ -172,116 +187,157 @@ u16 ue_rnti_candidate(void)
 
 u32 ue_compute_measurements()
 {
-        int           i;
-        int           j;
+	int           i;
+	int           j;
+	int           k;
 
-        int           mlen;
-        char          buf[MEDIUM_BUF];
-        ep_ue_measure m;
+	int           mlen;
+	char          buf[MEDIUM_BUF];
 
-        /* Do not compute on disconnected controller. */
-        if(!em_is_connected(sim_ID)) {
-                return SUCCESS;
-        }
+	int           mi;
+	ep_ue_measure m[UE_RRCM_MAX];
 
-        for(i = 0; i < UE_MAX; i++) {
-                if(sim_ues[i].rnti == UE_RNTI_INVALID) {
-                        continue;
-                }
+	/* Do not compute on disconnected controller. */
+	if(!em_is_connected(sim_ID)) {
+		return SUCCESS;
+	}
 
-                for(j = 0; j < UE_RRCM_MAX; j++) {
-                        if(sim_ues[i].meas[j].tri_id == 0) {
-                                continue;
-                        }
+	for(i = 0; i < UE_MAX; i++) {
+		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+			continue;
+		}
 
-                        /* Trigger removed; clean up */
-                        if(!em_has_trigger(
-                                sim_ID, sim_ues[i].meas[j].tri_id)) {
+		for(j = 0; j < UE_RRCM_MAX; j++) {
+			if(sim_ues[i].meas[j].tri_id == 0) {
+				continue;
+			}
 
-                                /* Invalidate the trigger. */
-                                sim_ues[i].meas[j].tri_id = 0;
-                                sim_ues[i].meas[j].mod_id = 0;
-                                sim_ues[i].meas[j].dirty  = 0;
+			/* Trigger removed; clean up */
+			if(!em_has_trigger(
+				sim_ID, sim_ues[i].meas[j].tri_id)) {
 
-                                continue;
-                        }
+				/* Invalidate the trigger. */
+				sim_ues[i].meas[j].tri_id = 0;
+				sim_ues[i].meas[j].mod_id = 0;
+				sim_ues[i].meas[j].dirty  = 0;
 
-                        if(!sim_ues[i].meas[j].dirty) {
-                                continue;
-                        }
+				continue;
+			}
 
-                        msg_fill_ue_measurements(
-                                &sim_ues[i].meas[j], &m);
+			if(!sim_ues[i].meas[j].dirty) {
+				continue;
+			}
 
-                        mlen = epf_trigger_uemeas_rep(
-                                buf,
-                                MEDIUM_BUF,
-                                sim_ID,
-                                sim_ues[i].meas[j].pci,
-                                sim_ues[i].meas[j].mod_id,
-                                1,
-                                UE_RRCM_MAX,
-                                &m);
+			mi = 0;
 
-                        em_send(sim_ID, buf, mlen);
+			m[mi].meas_id = sim_ues[i].meas[j].id;
+			m[mi].pci     = sim_ues[i].meas[j].pci;
+			m[mi].rsrp    = sim_ues[i].meas[j].rs.rsrp;
+			m[mi].rsrq    = sim_ues[i].meas[j].rs.rsrq;
 
-                        /* Keep it dirty if some error occurs. */
-                        sim_ues[i].meas[j].dirty = 0;
-                }
-        }
+			mi++;
 
-        return SUCCESS;
+			/* Look in every neighbor for measurements */
+			for(k = 0 ; k < NEIGH_MAX; k++) {
+				/* Skip neighbor */
+				if(sim_neighs[k].id == NEIGH_INVALID_ID) {
+					continue;
+				}
+
+				m[mi].meas_id = sim_ues[i].meas[j].id;
+				m[mi].pci     = (u16)sim_neighs[k].pci;
+				m[mi].rsrp    = sim_neighs[k].rs[i].rsrp;
+				m[mi].rsrq    = sim_neighs[k].rs[i].rsrq;
+
+				mi++;
+			}
+
+			mlen = epf_trigger_uemeas_rep(
+				buf,
+				MEDIUM_BUF,
+				sim_ID,
+				sim_ues[i].meas[j].pci,
+				sim_ues[i].meas[j].mod_id,
+				mi,
+				UE_RRCM_MAX,
+				m);
+
+			em_send(sim_ID, buf, mlen);
+
+			/* Keep it dirty if some error occurs. */
+			sim_ues[i].meas[j].dirty = 0;
+		}
+	}
+
+	return SUCCESS;
 }
 
 u32 ue_compute(void)
 {
-        int mlen;
-        char buf[MEDIUM_BUF];
+	int           i;
 
-        int nof_ues;
-        ep_ue_details ued[32];
+	int           mlen;
+	char          buf[MEDIUM_BUF];
 
-        /* Do not compute on disconnected controller. */
-        if(!em_is_connected(sim_ID)) {
-                return SUCCESS;
-        }
+	int           nof_ues;
+	ep_ue_details ued[32];
 
-        /*
-         * If the UEs simulated are marked as dirty, the system will report to
-         * the controller in the case a trigger has been setup.
-         */
-        if(sim_ue_dirty) {
-                /* Check every time is the trigger is still there. */
-                if(em_has_trigger(
-                        sim_ID,
-                        sim_UE_rep_trigger)) {
+	/* Do not compute on disconnected controller. */
+	if(!em_is_connected(sim_ID)) {
+		return SUCCESS;
+	}
 
-                        nof_ues = msg_fill_ue_details(ued);
+	/*
+	 * If the UEs simulated are marked as dirty, the system will report to
+	 * the controller in the case a trigger has been setup.
+	 */
+	if(sim_ue_dirty) {
+		/* Check every time is the trigger is still there. */
+		if(!em_has_trigger(
+			sim_ID,
+			sim_UE_rep_trigger))  {
 
-                        mlen = epf_trigger_uerep_rep(
-                                buf,
-                                MEDIUM_BUF,
-                                sim_ID,
-                                0,
-                                sim_UE_rep_mod,
-                                nof_ues,
-                                sim_UE_rep_max,
-                                ued);
+			return 0;
+		}
 
-                        if(mlen > 0) {
-                                em_send(sim_ID, buf, mlen);
-                        }
-                } else {
-                        LOG_UE("UEs report trigger %u not present.\n",
-                                sim_UE_rep_trigger);
-                }
+		for(i = 0, nof_ues = 0; i < UE_MAX; i++) {
+			if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+				continue;
+			}
 
-                /* No dirty anymore.
-                 * Failures keeps the flag dirty.
-                 */
-                sim_ue_dirty = 0;
-        }
+			/* We have a limited amount of RRC meas. to send */
+			if(nof_ues >= sim_UE_rep_max) {
+				break;
+			}
 
-        /* Perform computation on UE measurement level. */
-        return ue_compute_measurements();
+			ued[nof_ues].rnti = sim_ues[i].rnti;
+			ued[nof_ues].imsi = sim_ues[i].imsi;
+			ued[nof_ues].plmn = sim_ues[i].plmn;
+			ued[nof_ues].pci  = sim_ues[i].pci;
+
+			nof_ues++;
+		}
+
+		mlen = epf_trigger_uerep_rep(
+			buf,
+			MEDIUM_BUF,
+			sim_ID,
+			sim_phy.cells[0].pci,
+			sim_UE_rep_mod,
+			nof_ues,
+			sim_UE_rep_max,
+			ued);
+
+		if(mlen > 0) {
+			em_send(sim_ID, buf, mlen);
+		}
+
+		/* No dirty anymore.
+		 * Failures keeps the flag dirty.
+		 */
+		sim_ue_dirty = 0;
+	}
+
+		/* Perform computation on UE measurement level. */
+	return ue_compute_measurements();
 }

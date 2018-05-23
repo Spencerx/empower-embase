@@ -57,8 +57,8 @@ u32 stack_add_cell(u16 pci, u32 dl_earfcn, u32 ul_earfcn, u8 dl_prb, u8 ul_prb)
 	 * Changes which affects the MAC layer:
 	 */
 
-	sim_mac.DL_prb_max += dl_prb;
-	sim_mac.UL_prb_max += ul_prb;
+	sim_mac.DL.prb_max += dl_prb;
+	sim_mac.UL.prb_max += ul_prb;
 
 	return SUCCESS;
 }
