@@ -219,7 +219,9 @@ int wrap_handover(
 			0);
 
 		return -1;
-	} else {
+	}
+#if 0
+	else {
 		blen = epf_single_ho_rep(
 			buf,
 			SMALL_BUF,
@@ -236,10 +238,8 @@ int wrap_handover(
 		}
 
 		em_send(sim_ID, buf, blen);
-
-		return -1;
 	}
-
+#endif
 	ue_rem(rnti, 0);
 
 	return 0;
