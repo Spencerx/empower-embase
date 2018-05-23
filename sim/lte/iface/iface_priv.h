@@ -45,7 +45,8 @@
 /* Enumerate the interface possible screens. */
 enum iface_screen_types {
 	IFACE_SCREEN_UE = 0,
-	IFACE_SCREEN_ENB
+	IFACE_SCREEN_ENB,
+	IFACE_SCREEN_MAC,
 };
 
 /* Console current max row size. */
@@ -93,5 +94,12 @@ int iface_enb_handle_input(int key);
 int iface_to_ue_screen(void);
 /* Quickly swap to eNB screen. */
 int iface_to_enb_screen(void);
+
+/* Clean the state of the eNB screen. */
+int iface_mac_clean(void);
+/* Draw the eNB screen. */
+int iface_mac_draw();
+/* Handle keys in the eNB screen. */
+int iface_mac_handle_input(int key);
 
 #endif /* __EM_SIM_IFACE_PRIV_H */

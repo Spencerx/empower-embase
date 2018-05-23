@@ -89,29 +89,9 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 	sim_ues[f].rnti  = rnti;
 	sim_ues[f].plmn  = plmnid;
 	sim_ues[f].imsi  = imsi;
-#if 0
-	i = 0;
-	t = plmnid / 100000;
 
-	while(plmnid > 0) {
-		/* MCC has 2 digits? */
-		if(i == 8 && t == 0) {
-			sim_ues[f].plmn |= 0xf << i;
-			i += 4;
-
-			continue;
-		}
-
-		s      = plmnid % 10;
-		plmnid = plmnid / 10;
-
-		sim_ues[f].plmn |= s << i;
-
-		i += 4;
-	}
-#endif
 	/* WARN: Hard-coded operating on band 7. */
-	sim_ues[f].bands[0] = 7;
+	sim_ues[f].bands[0]        = 7;
 
 	/* Measurements on place in the UE; by default the slot 0 is reserved
 	 * to measurements on the attached cell. */
@@ -133,9 +113,14 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi)
 	/* Signal that the UEs list is dirty and shall be reported. */
 	sim_ue_dirty = 1;
 
-	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",
-		sim_ues[f].pci,
+	if(sim_mac.ran) {
+		/* Add to the default user */
+		ran_add_user(sim_ues[f].rnti, RAN_TENANT_DEFAULT);
+	}
+
+	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",		
 		sim_ues[f].rnti,
+		sim_ues[f].pci,
 		sim_ues[f].plmn,
 		sim_ues[f].imsi);
 
@@ -158,6 +143,11 @@ int ue_rem(u16 rnti)
 			for(j = 0; j < NEIGH_MAX; j++) {
 				sim_neighs[j].rs[i].rsrp = PHY_RSRP_LOWER;
 				sim_neighs[j].rs[i].rsrq = PHY_RSRQ_LOWER;
+			}
+
+			if (sim_mac.ran) {
+				/* Add to the default user */
+				ran_rem_user(rnti, 0);
 			}
 
 			LOG_UE("UE %u removed.\n", rnti);
@@ -232,9 +222,7 @@ u32 ue_compute_measurements()
 				1,
 				UE_RRCM_MAX,
 				&m);
-#ifdef EBUG_MSG
-			msg_dump("UE measurement dump:", buf, mlen);
-#endif /* EBUG_MSG */
+
 			em_send(sim_ID, buf, mlen);
 
 			/* Keep it dirty if some error occurs. */
@@ -281,9 +269,6 @@ u32 ue_compute(void)
 				ued);
 
 			if(mlen > 0) {
-#ifdef EBUG_MSG
-				msg_dump("UE report dump:", buf, mlen);
-#endif /* EBUG_MSG */
 				em_send(sim_ID, buf, mlen);
 			}
 		} else {

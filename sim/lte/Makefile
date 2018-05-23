@@ -24,9 +24,11 @@ all:
 		iface/enb/iface_enb.c         \
 		iface/help/iface_help.c       \
 		iface/ue/iface_ue.c           \
+		iface/mac/iface_mac.c         \
 		iface/iface.c                 \
 		stack/phy.c                   \
 		stack/mac.c                   \
+		stack/ran.c                   \
 		stack/stack.c                 \
 		err.c                         \
 		log.c                         \

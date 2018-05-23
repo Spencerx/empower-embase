@@ -164,7 +164,10 @@ int iface_lowbar_draw()
 	printw("eNB screen [F3]");
 
 	move(iface_row - 1, 11 + 16 + 17);
-	printw("Exit [F4]");
+	printw("MAC [F4]");
+
+	move(iface_row - 1, 11 + 16 + 17 + 10);
+	printw("Exit [F9]");
 
 	attroff(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
 
@@ -234,6 +237,9 @@ int iface_draw()
 	case IFACE_SCREEN_ENB:
 		iface_enb_draw();
 		break;
+	case IFACE_SCREEN_MAC:
+		iface_mac_draw();
+		break;
 	}
 
 	/* Always draw this command bar. */
@@ -270,6 +276,9 @@ int iface_handle_input(int key)
 	case IFACE_SCREEN_ENB:
 		iface_enb_handle_input(key);
 		break;
+	case IFACE_SCREEN_MAC:
+		iface_mac_handle_input(key);
+		break;
 	}
 
 	/* Low-bar input handler: */
@@ -284,16 +293,8 @@ int iface_handle_input(int key)
 	case KEY_F(3):
 		iface_scr_select = IFACE_SCREEN_ENB;
 		break;
-	case KEY_F(9):
-		iface_alive = 0;
-		endwin();
-		printf("Indexes:\n");
-		printf("   ue_sel: %d\n", iface_ue_sel);
-		printf("   ue_sel_idx: %d\n", iface_ue_sel_idx);
-		printf("   enb_sel: %d\n", iface_enb_sel);
-		printf("   enb_sel_idx: %d\n", iface_enb_sel_idx);
-
-		exit(0);
+	case KEY_F(4):
+		iface_scr_select = IFACE_SCREEN_MAC;
 		break;
 	default:
 		break;
@@ -341,7 +342,7 @@ void * iface_loop(void * args)
 
 	iface_colors();
 
-	while(key != KEY_F(4)) {
+	while(key != KEY_F(9)) {
 		clear();
 		getmaxyx(stdscr, iface_row, iface_col);
 

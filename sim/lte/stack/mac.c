@@ -21,6 +21,9 @@
 #include <time.h>
 
 #include "../emsim.h"
+#include "stack_priv.h"
+
+#define LOG_MAC(x, ...) 	LOG_TRACE(x, ##__VA_ARGS__)
 
 /* Dif "b-a" two timespec structs and return such value in ms.*/
 #define ts_diff_to_ms(a, b) 			\
@@ -34,26 +37,117 @@
 em_mac sim_mac = {0};
 
 /******************************************************************************
+ * Round-Robin schedulers:                                                    *
+ ******************************************************************************/
+
+ /* These variables are used locally for RR schedulers only: */
+
+ int rr_DL_last = 0;	/* Index of the last UE scheduled in DL */
+ int rr_UL_last = 0;	/* Index of the last UE scheduled in UL */
+
+/* Performs RR operations on existing UE. This procedure is called every 
+ * scheduler time unit (stu), and this variable can be adjusted to slow down or
+ * speed up the computation.
+ *
+ * This scheduler assign one entire DL subframe per connected UE; RR style.
+ */
+u32 mac_rr_DL_scheduler(em_mac * mac, em_ue * ues, u32 nof_ues)
+{
+	int i    = (rr_DL_last + 1) % UE_MAX;
+	int j;
+	int t    = mac->DL.tti % 10;
+	u16 rnti = UE_RNTI_INVALID;
+
+	/* No-one to use the DL spectrum; clean ond go on... */
+	if (nof_ues == 0) {
+		goto assign;
+	}
+
+	/* Start from next index (module) and perform a entire loop on the UEs.
+	 * Get the next valid one.
+	 */
+	//while (i != rr_DL_last) {
+	for(; i < UE_MAX; i = (i + 1) % UE_MAX) {
+		/* We pick a valid UE */
+		if (ues[i].rnti != UE_RNTI_INVALID) {
+			rnti = ues[i].rnti;
+			rr_DL_last = i;
+			break;
+		}
+	}
+
+/* Assign the DL spectrum resources to the selected RNTI */
+assign:
+	for(i = 0; i < MAC_DL_PRBG_MAX; i++) {
+		for(j = 0; j < MAC_DL_RGS_20; j++){
+			mac->DL.PRBG[t][i].PRBG[j] = rnti;
+		}
+
+		mac->DL.PRBG[t][i].rnti = rnti;
+	}
+
+	/* Assume using all the resources of this sub-frame */
+	mac->DL.prb_in_use += mac->DL.prb_max;
+
+	return SUCCESS;
+}
+
+/* Performs RR operations on existing UE.
+ * This scheduler assign 1 UL subframe per connected UE.
+ */
+u32 mac_rr_UL_scheduler(em_mac * mac, em_ue * ues)
+{
+	/* UL not supported yet... */
+
+	return SUCCESS;
+}
+
+/******************************************************************************
  * MAC utilities:                                                             *
  ******************************************************************************/
 
 u32 mac_dl_compute()
 {
 	int i;
-	int step = floor((float)sim_mac.DL_prb_max / (float)UE_MAX);
-	/* User PRBs are proportional to number of UEs active */
-	int tot  = step * sim_nof_ues;
+	int ms;
+	int sc;
+	struct timespec now;
 
-	if(sim_mac.DL_prb_in_use != tot) {
-		sim_mac.DL_prb_in_use = tot;
+	/* How many time we need to repeat the operation? Check how many cycles
+	 * we need to perform based on the assigned 'stu'.
+	 */
+	clock_gettime(CLOCK_REALTIME, &now);
+	ms = ts_diff_to_ms(sim_mac.DL.last, now);
+	sc = ms / sim_mac.stu;
+
+//	LOG_MAC("Running MAC DL for TTI %d; elapsed=%d, stu=%d, times=%d\n", 
+//		sim_mac.DL.tti, ms, sim_mac.stu, sc);
+
+	while(sc > 0) {
+		if (sim_mac.ran) {
+			/* Run the RAN DL scheduler! */
+			ran_DL_scheduler(&sim_mac, sim_ues, sim_nof_ues);
+		} else {
+			/* Run the DL scheduler! */
+			mac_rr_DL_scheduler(&sim_mac, sim_ues, sim_nof_ues);
+		}
+
+		sim_mac.DL.last.tv_sec  = now.tv_sec;
+		sim_mac.DL.last.tv_nsec = now.tv_nsec;
+
+		sim_mac.DL.tti = (sim_mac.DL.tti + 1) % PHY_MAX_TTI;
+
+		sc--;
 	}
 
-	for(i=0; i < MAC_REPORT_MAX; i++) {
-		if(!sim_mac.mac_rep[i].mod) {
+	/* Update the statistics of the registered reports */
+	for (i = 0; i < MAC_REPORT_MAX; i++) {
+		/* Do not consider invalid reports */
+		if (!sim_mac.mac_rep[i].mod) {
 			continue;
 		}
 
-		sim_mac.mac_rep[i].DL_acc += tot;
+		sim_mac.mac_rep[i].DL_acc += sim_mac.DL.prb_in_use;
 	}
 
 	return SUCCESS;
@@ -61,6 +155,7 @@ u32 mac_dl_compute()
 
 u32 mac_ul_compute()
 {
+#if 0
 	int i;
 	int step = floor((float)sim_mac.UL_prb_max / (float)UE_MAX);
 	/* User PRBs are proportional to number of UEs active */
@@ -77,7 +172,9 @@ u32 mac_ul_compute()
 
 		sim_mac.mac_rep[i].UL_acc += tot;
 	}
+#endif
 
+	/* Not implemented yet... */
 
 	return SUCCESS;
 }
@@ -90,10 +187,13 @@ u32 mac_init()
 {
 	int i;
 
+	sim_mac.DL.prb_max = 0;
+	sim_mac.UL.prb_max = 0;
+
 	for(i = 0; i < sim_phy.nof_cells; i++) {
 		if(sim_phy.cells[0].pci != 0xffff) {
-			sim_mac.DL_prb_max += sim_phy.cells[0].DL_prb;
-			sim_mac.UL_prb_max += sim_phy.cells[0].UL_prb;
+			sim_mac.DL.prb_max += sim_phy.cells[0].DL_prb;
+			sim_mac.UL.prb_max += sim_phy.cells[0].UL_prb;
 		}
 	}
 
@@ -101,7 +201,13 @@ u32 mac_init()
 		clock_gettime(CLOCK_REALTIME, &sim_mac.mac_rep[i].last);
 	}
 
-	return SUCCESS;
+	/* 1 second of speed for schedulers */
+	sim_mac.stu = 1000;
+
+	sim_mac.DL.tti = 0;
+	clock_gettime(CLOCK_REALTIME, &sim_mac.DL.last);
+
+	return ran_init();
 }
 
 u32 mac_compute()
@@ -130,7 +236,7 @@ u32 mac_compute()
 
 	clock_gettime(CLOCK_REALTIME, &now);
 
-	for(i=0; i < MAC_REPORT_MAX; i++) {
+	for(i = 0; i < MAC_REPORT_MAX; i++) {
 		/* Do not consider invalid reports */
 		if(!sim_mac.mac_rep[i].mod) {
 			continue;
@@ -140,10 +246,10 @@ u32 mac_compute()
 			sim_mac.mac_rep[i].interval) {
 
 			mac.DL_prbs_used   = sim_mac.mac_rep[i].DL_acc;
-			mac.DL_prbs_total  = sim_mac.DL_prb_max;
+			mac.DL_prbs_total  = sim_mac.DL.prb_max;
 
 			mac.UL_prbs_used   = sim_mac.mac_rep[i].UL_acc;
-			mac.UL_prbs_total  = sim_mac.UL_prb_max;
+			mac.UL_prbs_total  = sim_mac.UL.prb_max;
 
 			mlen = epf_trigger_macrep_rep(
 				buf,
@@ -152,13 +258,14 @@ u32 mac_compute()
 				sim_phy.cells[0].pci,
 				sim_mac.mac_rep[i].mod,
 				&mac);
-#ifdef EBUG_MSG
-			msg_dump("MAC report reply:", buf, blen);
-#endif /* EBUG_MSG */
+
 			em_send(sim_ID, buf, mlen);
 
+			/* Reset the state of this report */
 			sim_mac.mac_rep[i].last.tv_nsec = now.tv_nsec;
 			sim_mac.mac_rep[i].last.tv_sec  = now.tv_sec;
+			sim_mac.mac_rep[i].DL_acc       = 0;
+			sim_mac.mac_rep[i].UL_acc       = 0;
 		}
 	}
 

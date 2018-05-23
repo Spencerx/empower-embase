@@ -17,8 +17,21 @@
  * Empower Agent LTE stack simulation private header.
  */
 
+/******************************************************************************
+ *                        Physical layer routines                             *
+ ******************************************************************************/
+
 u32 phy_compute();
 u32 phy_init();
 
+/******************************************************************************
+ *                          MAC layer routines                                *
+ ******************************************************************************/
+
 u32 mac_compute();
 u32 mac_init();
+
+/* RAN routines; these falls under MAC layer one. */
+
+u32 ran_DL_scheduler(em_mac * mac, em_ue * ues, u32 nof_ues);
+u32 ran_init();

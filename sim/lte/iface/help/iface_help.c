@@ -35,7 +35,7 @@ int iface_help_draw()
 {
 	char c[] = "(c) 2017 Kewin Rausch, FBK Create-Net";
 	char p[] = "EMpower BASE station simulator [version 0.2]";
-	char e[] = "Press F1 to continue; F4 to exit";
+	char e[] = "Press F1 to continue; F9 to exit";
 
 	char h1[] = "This application is a LTE base station simulator for "
 			"Empower technologies.";

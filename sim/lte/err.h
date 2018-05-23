@@ -81,12 +81,18 @@ enum __em_sim_errors {
 
 	/* Not enough memory during initialization steps. */
 	ERR_RAN_INIT_MEMORY,
-	/* Id of the tenant is not valid. */
+	/* Id of the user/tenant is not valid. */
 	ERR_RAN_ADD_INVALID,
-	/* The tenant already exists. */
+	/* The user/tenant already exists. */
 	ERR_RAN_ADD_EXISTS,
-	/* No more slots free for new tenants. */
+	/* No more slots free for new users/tenants. */
 	ERR_RAN_ADD_FULL,
+	/* Id of the user/tenant is not valid. */
+	ERR_RAN_REM_INVALID,
+	/* The user/tenant already exists. */
+	ERR_RAN_REM_EXISTS,
+	/* No more slots free for new users/tenants. */
+	ERR_RAN_REM_FULL,
 	/* No more memory available while changing time window. */
 	ERR_RAN_CWIN_MEMORY,
 	/* Invalid scheduler name/id. */
