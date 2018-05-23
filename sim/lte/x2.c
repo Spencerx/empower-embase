@@ -51,7 +51,7 @@ int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 	int f = -1;
 
 	/* Somebody with our same id is contacting us!
-	 * Some serious mis-configuration is happening in the net.
+	 * Some serious miss-configuration is happening in the net.
 	 */
 	if(ntohl(head->base_id) == sim_ID) {
 		LOG_X2("eNB id (%u) conflict with %s\n", head->base_id, ipv4);
@@ -71,8 +71,8 @@ int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 			f = i;
 
 			/* The cell id sent to us is always the most updated. */
-			if(sim_neighs[i].pci != ntohl(head->cell_id)) {
-				sim_neighs[i].pci = ntohl(head->cell_id);
+			if(sim_neighs[i].pci != ntohs(head->cell_id)) {
+				sim_neighs[i].pci = ntohs(head->cell_id);
 			}
 
 			/* Update the last time we seen it. */
@@ -95,17 +95,65 @@ int x2_alive(struct x2_head * head, char * ipv4, unsigned short port)
 
 int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 {
-	char           msg[SMALL_BUF] = {0};
-	int            mlen;
+	char		msg[SMALL_BUF] = {0};
+	int		mlen;
 
-	unsigned short rnti = ue_rnti_candidate();
-	struct x2_ho * ho = (struct x2_ho *)(buf + sizeof(struct x2_head));
+	int 		i;
+	int		j;
 
-	LOG_X2("UE %"PRIu64" handed over to us by eNB %d.\n",
+	unsigned short 	rnti = ue_rnti_candidate();
+	struct x2_ho * 	ho = (struct x2_ho *)(buf + sizeof(struct x2_head));
+
+	/* Problem during receiving an HO from neighbor? */
+	if((i = ue_add(
+		sim_phy.cells[0].pci,
+		sim_phy.cells[0].DL_earfcn,
+		rnti,
+		ntohl(ho->plmnid),
+		be64toh(ho->imsi),
+		0)) < 0) {
+
+		goto ho_err;
+	}
+
+	mlen = epf_single_ho_rep(
+		msg,
+		SMALL_BUF,
+		sim_ID,
+		sim_phy.cells[0].pci,
+		0,
+		ntohl(head->base_id),
+		ntohs(head->cell_id),
+		ntohs(ho->rnti),
+		sim_ues[i].rnti);
+
+	if(mlen > 0) {
+		em_send(sim_ID, msg, mlen);
+	}
+
+	/* Preserve the measurement done by the UE before HO. */
+	sim_ues[i].meas[0].rs.rsrp = (s16)(ntohs(ho->t_rsrp));
+	sim_ues[i].meas[0].rs.rsrq = (s16)(ntohs(ho->t_rsrq));
+
+	for(j = 0; j < NEIGH_MAX; j++) {
+		/* Preserve the measurement done by the UE before HO. */
+		if(sim_neighs[j].pci == ntohs(head->cell_id)) {
+			sim_neighs[j].rs[i].rsrq = (s16)(ntohs(ho->s_rsrq));
+			sim_neighs[j].rs[i].rsrp = (s16)(ntohs(ho->s_rsrp));
+		} else {
+			sim_neighs[j].rs[i].rsrq = PHY_RSRQ_LOWER;
+			sim_neighs[j].rs[i].rsrp = PHY_RSRP_LOWER;
+		}
+	}
+
+	LOG_X2("UE with IMSI=%"PRIu64" handed over to us by eNB %d.\n",
 		be64toh(ho->imsi),
 		ntohl(head->base_id));
 
-	mlen = epf_single_ho_rep(
+	return SUCCESS;
+
+ho_err:
+	mlen = epf_single_ho_rep_fail(
 		msg,
 		SMALL_BUF,
 		sim_ID,
@@ -120,12 +168,9 @@ int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 		em_send(sim_ID, msg, mlen);
 	}
 
-	ue_add(
-		sim_phy.cells[0].pci,
-		sim_phy.cells[0].DL_earfcn,
-		rnti,
-		ntohl(ho->plmnid),
-		be64toh(ho->imsi));
+	LOG_X2("UE with IMSI=%"PRIu64" hand-over failed, issued by eNB %d.\n",
+		be64toh(ho->imsi),
+		ntohl(head->base_id));
 
 	return SUCCESS;
 }
@@ -184,6 +229,14 @@ int x2_hand_over(u16 rnti, u32 enb)
 	struct x2_head * hdr = (struct x2_head *)buf;
 	struct x2_ho * ho    = (struct x2_ho *)(buf + sizeof(struct x2_head));
 
+	if(enb == NEIGH_INVALID_ID) {
+		return ERR_X2_HO_CELL;
+	}
+
+	if(rnti == UE_RNTI_INVALID) {
+		return ERR_X2_HO_UE;
+	}
+
 	for(i = 0; i < UE_MAX; i++) {
 		if(sim_ues[i].rnti == rnti) {
 			u = i;
@@ -199,12 +252,12 @@ int x2_hand_over(u16 rnti, u32 enb)
 	}
 
 	if(e < 0) {
-		LOG_X2("Neighbor cell not found, e=%u\n", e);
+		LOG_X2("HO: Neighbor cell not found, enb=%u\n", enb);
 		return ERR_X2_HO_CELL;
 	}
 
 	if(u < 0 ) {
-		LOG_X2("UE not found, u=%u\n", u);
+		LOG_X2("HO: UE not found, ue=%u\n", rnti);
 		return ERR_X2_HO_UE;
 	}
 
@@ -215,6 +268,11 @@ int x2_hand_over(u16 rnti, u32 enb)
 	ho->rnti     = htons(sim_ues[u].rnti);
 	ho->imsi     = htobe64(sim_ues[u].imsi);
 	ho->plmnid   = htonl(sim_ues[u].plmn);
+
+	ho->s_rsrp   = htons((s16)(sim_ues[u].meas[0].rs.rsrp));
+	ho->s_rsrq   = htons((s16)(sim_ues[u].meas[0].rs.rsrq));
+	ho->t_rsrp   = htons((s16)(sim_neighs[e].rs[u].rsrp));
+	ho->t_rsrq   = htons((s16)(sim_neighs[e].rs[u].rsrq));
 
 	LOG_X2("Handing over UE %x to eNB %d\n", rnti, enb);
 
@@ -292,7 +350,7 @@ u32 x2_compute()
 		/* Only if its a valid one. */
 		if(sim_neighs[i].id) {
 			j.base_id = htonl(sim_ID);
-			j.cell_id = htonl(sim_phy.cells[0].pci);
+			j.cell_id = htons(sim_phy.cells[0].pci);
 			j.type = X2_MSG_ALIVE;
 
 			/* Send the 'I'm alive' message. */

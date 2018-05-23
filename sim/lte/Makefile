@@ -33,7 +33,6 @@ all:
 		err.c                         \
 		log.c                         \
 		main.c                        \
-		msg.c                         \
 		neigh.c                       \
 		plmn.c                        \
 		ue.c                          \

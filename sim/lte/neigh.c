@@ -97,7 +97,8 @@ int neigh_rem(u32 id)
 				sim_nof_neigh--;
 			}
 
-			memset(&sim_neighs[i], 0, sizeof(em_neigh));
+			//memset(&sim_neighs[i], 0, sizeof(em_neigh));
+			sim_neighs[i].id = NEIGH_INVALID_ID;
 
 			return SUCCESS;
 		}

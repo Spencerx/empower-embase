@@ -37,6 +37,7 @@
 
 u32 iface_enb_ho_mask= 0;
 u32 iface_enb_ho_sel = 0;
+u16 iface_enb_ho_rnti= 0;
 u32 iface_enb_ho_idx = 0;
 
 /*
@@ -383,15 +384,17 @@ int iface_enb_handover_input(int key)
 		}
 
 		break;
-	/* This is the ENTER key; time to insert the new UE. */
+	/* This is the ENTER key */
 	case 10:
 		/* Perform the hand-over. */
-		x2_hand_over(
-			sim_ues[iface_enb_sel_idx].rnti,
+		iface_err = x2_hand_over(
+			iface_enb_ho_rnti,
 			sim_neighs[iface_enb_ho_idx].id);
 
-		/* Remove the UE from here. */
-		ue_rem(sim_ues[iface_enb_sel_idx].rnti);
+		if(!iface_err) {
+			/* Remove the UE from here. */
+			ue_rem(iface_enb_ho_rnti, 0);
+		}
 
 		iface_enb_ho_mask = 0;
 		break;
@@ -426,7 +429,7 @@ int iface_enb_draw_ho()
 	move(u - 2, (iface_col / 2) - (sizeof(ti) / 2));
 	printw("%s", ti);
 
-	for(i = 0; i < sim_nof_ues; i++) {
+	for(i = 0; i < UE_MAX; i++) {
 		if(!sim_ues[i].rnti) {
 			continue;
 		}
@@ -435,6 +438,7 @@ int iface_enb_draw_ho()
 
 		if(iface_enb_ho_sel == s) {
 			iface_enb_ho_idx = s;
+			iface_enb_ho_rnti= sim_ues[i].rnti;
 
 			attroff(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));
 			printw("%"PRIu64"", sim_ues[i].imsi);

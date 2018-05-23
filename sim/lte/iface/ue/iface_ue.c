@@ -88,7 +88,8 @@ int iface_ue_handle_add_input(int key)
 			sim_phy.cells[0].DL_earfcn,
 			(unsigned short)atoi(iface_ue_add_rnti),
 			p,
-			(unsigned long long)atoll(iface_ue_add_imsi));
+			(unsigned long long)atoll(iface_ue_add_imsi),
+			1);
 
 		if(e < 0) {
 			iface_err = e;
@@ -265,7 +266,7 @@ int iface_ue_handle_input(int key)
 		break;
 	/* Remove the selected UE. */
 	case 'r':
-		ue_rem(sim_ues[iface_ue_sel_idx].rnti);
+		ue_rem(sim_ues[iface_ue_sel_idx].rnti, 1);
 
 		if(iface_ue_sel > 1) {
 			iface_ue_sel--;
