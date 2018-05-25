@@ -199,8 +199,8 @@ int wrap_handover(
 	uint16_t target_cell,
 	uint8_t  cause)
 {
-	char        buf[SMALL_BUF] = {0};
-	int         blen;
+	char buf[SMALL_BUF] = {0};
+	int  blen;
 
 	LOG_WRAP("UE handover requested for RNTI %d\n", rnti);
 
@@ -218,28 +218,11 @@ int wrap_handover(
 			rnti,
 			0);
 
+		em_send(sim_ID, buf, blen);
+
 		return -1;
 	}
-#if 0
-	else {
-		blen = epf_single_ho_rep(
-			buf,
-			SMALL_BUF,
-			sim_ID,
-			source_cell,
-			mod,
-			sim_ID,
-			source_cell,
-			rnti,
-			0);
 
-		if (blen < 0) {
-			return -1;
-		}
-
-		em_send(sim_ID, buf, blen);
-	}
-#endif
 	ue_rem(rnti, 0);
 
 	return 0;

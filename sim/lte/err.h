@@ -76,6 +76,19 @@ enum __em_sim_errors {
 	ERR_PHY_INIT,
 
 	/*
+	 * SCENARIO errors:
+	 */
+
+	/* Not enough memory during scenario loading. */
+	ERR_SCE_LOAD_NO_MEM,
+	/* I/O errors occurs during scenario loading. */
+	ERR_SCE_LOAD_IO,
+	/* Errors in the scenario file grammars. */
+	ERR_SCE_LOAD_GRAM,
+	/* I/O errors during scenario saving */
+	ERR_SCE_SAVE_IO,
+
+	/*
 	 * RAN errors:
 	 */
 

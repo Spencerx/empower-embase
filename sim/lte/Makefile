@@ -35,6 +35,7 @@ all:
 		main.c                        \
 		neigh.c                       \
 		plmn.c                        \
+		scenario.c                    \
 		ue.c                          \
 		wrap.c                        \
 		x2.c                          \

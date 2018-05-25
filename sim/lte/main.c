@@ -75,6 +75,10 @@ void help(void)
 "    Connect with EmPOWER controller on this address.\n"
 "--ctrl_port <num>\n"
 "    Connect with EmPOWER controller using custom port.\n"
+"--x2p <num>\n"
+"    Use the specified port for X2 interface connection\n"
+"--scenario <path>\n"
+"    Load a scenario (known UE and neighbors) at startup\n"
 "--hl\n"
 "    Headless, run without UI\n");
 }
@@ -176,6 +180,20 @@ void parse_args(int argc, char ** argv)
 			sim_hl = 1;
 
 			LOG_MAIN("Will not start the UI\n");
+
+			continue;
+		}
+
+		if(strcmp(argv[i], "--scenario") == 0) {
+			if(i + 1 >= argc) {
+				LOG_MAIN("--scenario is missing a path\n");
+				continue;
+			}
+
+			LOG_MAIN("Loading scenario %s\n", argv[i + 1]);
+
+			sce_load(argv[i + 1]);
+			i++;
 
 			continue;
 		}

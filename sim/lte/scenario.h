@@ -14,41 +14,30 @@
  */
 
 /*
- * Empower Agent simulator master header.
+ * Empower Agent simulator scenario module.
  */
 
-#ifndef __EM_SIM_H
-#define __EM_SIM_H
+#ifndef __EM_SIM_SCENARIO_H
+#define __EM_SIM_SCENARIO_H
 
-#include "err.h"
-#include "iface.h"
-#include "log.h"
-#include "neigh.h"
-#include "plmn.h"
-#include "scenario.h"
-#include "stack.h"
-#include "ue.h"
-#include "wrap.h"
-#include "x2.h"
-
-#define SMALL_BUF      64
-#define MEDIUM_BUF     2048
-#define BIG_BUF        16384
+#include <emtypes.h>
 
 /******************************************************************************
  * Globals used all around the simulator:                                     *
  ******************************************************************************/
 
-/* Id of the agent associated with the simulator. */
-extern u32 sim_ID;
-/* Interval in ms of the main loop */
-extern u32 sim_loop_int;
-
 /******************************************************************************
- * Globals utilities:                                                         *
+ * Public accessible procedures:                                              *
  ******************************************************************************/
 
-/* Mask all signal so they wont disturb the calling thread */
-void util_mask_all_signals();
+/* Parse the given scenario file and setup the simulator following its contents.
+ * Returns SUCCESS, or a negative error code in case of problems.
+ */
+int sce_load(char * path);
 
-#endif
+/* Saves the situation of UEs and neighbors in a scenario file.
+ * Returns SUCCESS, or a negative error code in case of problem.
+ */
+int sce_save(char * path);
+
+#endif /* __EM_SIM_SCENARIO_H */

@@ -71,6 +71,9 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi, int rep)
 
 			/* Two UE with the same IMSI are not allowed! */
 			if(sim_ues[i].imsi == imsi) {
+				LOG_UE("IMSI %"PRIu64" already exists!\n",
+					imsi);
+
 				return ERR_UE_ADD_EXISTS;
 			}
 		}

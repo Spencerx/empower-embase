@@ -272,6 +272,9 @@ int iface_ue_handle_input(int key)
 			iface_ue_sel--;
 		}
 		break;
+	case 's':
+		sce_save("./scenario.ems");
+		break;
 	/* Increase the RSRP of the selected UE. */
 	case 'i':
 		sim_ues[iface_ue_sel_idx].meas[0].rs.rsrp += 0.1f;
@@ -356,7 +359,7 @@ int iface_ue_draw_topbar()
 	printw("User Equipments screen, perform operations on UEs:");
 
 	move(1, 8);
-	printw("a - Add UE");
+	printw("a - Add UE     s - Save scenario");
 
 	move(2, 8);
 	printw("r - Remove UE");
