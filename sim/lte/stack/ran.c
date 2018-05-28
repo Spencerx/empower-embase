@@ -127,6 +127,16 @@ next:
 		mac->DL.prb_in_use++;
 	}
 
+	/* Update the accumulators of active reports */
+	for(i = 0; i < MAC_REPORT_MAX; i++) {
+		if(!mac->mac_rep[i].mod) {
+			continue;
+		}
+
+		/* PRB used must be casted per sub-frame */
+		mac->mac_rep[i].DL_acc += (mac->DL.prb_in_use * sim_loop_int);
+	}
+
 	return SUCCESS;
 }
 

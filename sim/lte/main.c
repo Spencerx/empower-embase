@@ -237,11 +237,6 @@ int main(int argc, char ** argv) {
 		return 0;
 	}
 
-	/* Initialize the RAN subsystem. */
-	//if(ran_init()) {
-	//	return 0;
-	//}
-
 	/* Examine arguments. */
 	parse_args(argc, argv);
 

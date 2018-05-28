@@ -53,7 +53,7 @@ em_mac sim_mac = {0};
  *
  * This scheduler assign one entire DL subframe per connected UE; RR style.
  */
-u32 mac_rr_DL_scheduler(em_mac * mac, em_ue * ues, u32 nof_ues)
+u32 mac_rr_DL_schedule(em_mac * mac, em_ue * ues, u32 nof_ues)
 {
 	int i    = (rr_DL_last + 1) % UE_MAX;
 	int j;
@@ -91,13 +91,23 @@ assign:
 	/* Assume using all the resources of this sub-frame */
 	mac->DL.prb_in_use += mac->DL.prb_max;
 
+	/* Update the accumulators of active reports */
+	for(i = 0; i < MAC_REPORT_MAX; i++) {
+		if(!mac->mac_rep[i].mod) {
+			continue;
+		}
+
+		/* PRB used must be casted per sub-frame */
+		mac->mac_rep[i].DL_acc += (mac->DL.prb_in_use * sim_loop_int);
+	}
+
 	return SUCCESS;
 }
 
 /* Performs RR operations on existing UE.
  * This scheduler assign 1 UL subframe per connected UE.
  */
-u32 mac_rr_UL_scheduler(em_mac * mac, em_ue * ues)
+u32 mac_rr_UL_schedule(em_mac * mac, em_ue * ues)
 {
 	/* UL not supported yet... */
 
@@ -105,32 +115,44 @@ u32 mac_rr_UL_scheduler(em_mac * mac, em_ue * ues)
 }
 
 /******************************************************************************
- * MAC utilities:                                                             *
+ * Fair PRB Split schedulers:                                                 *
  ******************************************************************************/
 
-u32 mac_dl_compute()
+/* Fill the right amount of PRBs inside the group */
+void mac_fill_PRBG(em_mac_PRBG * prbg, u16 rnti, int prbs)
 {
 	int i;
+
+	for(i = 0; i < prbs; i++) {
+		prbg->PRBG[i] = rnti;
+	}
+}
+
+int mac_fps_DL_schedule(em_mac * mac, em_ue * ues, u32 nof_ues)
+{
+	int i;
+	int p = 0; /* All PRBG before this index have been allocated */
 
 	/* Stop flag if all the allocations are 5 or higher PRBs */
 	int s;
 
 	/* PRBs alloc per UE */
-	int alloc[UE_MAX] = {0};
+	//int alloc[UE_MAX] = {0};
 
+	int tti = mac->DL.tti % 10;
 	/* PRB steps: this is the amount of PRB per single UE */
 	int prbs;
 	/* Actually used PRBS */
 	int prbu = 0;
 	/* Total PRB left */
-	int prbt = sim_mac.DL.prb_max;
+	int prbt = mac->DL.prb_max;
 
-	if(sim_nof_ues) {
-		prbs = sim_mac.DL.prb_max / sim_nof_ues;
+	if(nof_ues) {
+		prbs = mac->DL.prb_max / nof_ues;
 	} else {
 		prbs = 0;
 	}
-
+#if 0
 	/* Keep the used PRB used by each UE between 1 and 5 per UE */
 	if(prbs == 0) {
 		prbs = 1;
@@ -139,10 +161,25 @@ u32 mac_dl_compute()
 			prbs = 5;
 		}
 	}
+#endif
+	/* Select the right amount of resources based on the bandwidth */
+	if(mac->DL.prb_max  == MAC_PRB_1_4) {
+		prbs = MAC_DL_RGS_1_4;
+	} else if(mac->DL.prb_max  == MAC_PRB_3) {
+		prbs = MAC_DL_RGS_3;
+	} else if(mac->DL.prb_max  == MAC_PRB_5) {
+		prbs = MAC_DL_RGS_5;
+	} else if(mac->DL.prb_max  == MAC_PRB_10) {
+		prbs = MAC_DL_RGS_10;
+	} else if(mac->DL.prb_max  == MAC_PRB_15) {
+		prbs = MAC_DL_RGS_15;
+	} else {
+		prbs = MAC_DL_RGS_20;
+	}
 
-	/* Loop on all the UEs and perform initial allocation */
+	/* Loop on all the UEs and perform initial groups allocation */
 	for(i = 0; i < UE_MAX; i++) {
-		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+		if(ues[i].rnti == UE_RNTI_INVALID) {
 			continue;
 		}
 
@@ -157,12 +194,15 @@ u32 mac_dl_compute()
 		}
 
 		prbt     -= prbs;
-		alloc[i] += prbs;
 		prbu     += prbs;
 
+		/* Fill the DL structures for MAC representation */
+		mac->DL.PRBG[tti][p].rnti = ues[i].rnti;
+		mac_fill_PRBG(&mac->DL.PRBG[tti][p], ues[i].rnti, prbs);
+		p++;
 	}
 
-	/* Are there some PRB left behind? */
+	/* Are there some PRBG left behind? */
 	if(prbt > 0) {
 		/* Loop until all PRBS have been consumed, or while another
 		 * condition is triggered (see 's' flag).
@@ -170,9 +210,8 @@ u32 mac_dl_compute()
 		while(prbt > 0) {
 			s = 0;
 
-			/* Reverse loop to allocate the last PRBs */
-			for(i = UE_MAX - 1; i >= 0; i--) {
-				if(sim_ues[i].rnti == UE_RNTI_INVALID) {
+			for(i = 0; i < UE_MAX; i++) {
+				if(ues[i].rnti == UE_RNTI_INVALID) {
 					continue;
 				}
 
@@ -181,13 +220,23 @@ u32 mac_dl_compute()
 					break;
 				}
 
-				if(alloc[i] < 5) {
-					s = 1;
-
-					alloc[i] += 1;
-					prbt     -= 1;
-					prbu     += 1;
+				if(prbt <= prbs) {
+					prbs = prbt;
 				}
+
+				s = 1;
+
+				prbt     -= prbs;
+				prbu     += prbs;
+
+				mac->DL.PRBG[tti][p].rnti = ues[i].rnti;
+
+				mac_fill_PRBG(
+					&mac->DL.PRBG[tti][p],
+					ues[i].rnti,
+					prbs);
+
+				p++;
 			}
 
 			/* No allocations have be done, since all the UEs got
@@ -200,88 +249,49 @@ u32 mac_dl_compute()
 	}
 
 	/* Update the amount of PRBS used for this sub-frame */
-	if(sim_mac.DL.prb_in_use != prbu) {
-		sim_mac.DL.prb_in_use = prbu;
+	if(mac->DL.prb_in_use != prbu) {
+		mac->DL.prb_in_use = prbu;
 	}
 
 	/* Update the amount of PRBS used overall */
 	for(i = 0; i < MAC_REPORT_MAX; i++) {
-		if(!sim_mac.mac_rep[i].mod) {
+		if(!mac->mac_rep[i].mod) {
 			continue;
 		}
 
 		/* PRB used must be casted per sub-frame */
-		sim_mac.mac_rep[i].DL_acc += (prbu * sim_loop_int);
+		mac->mac_rep[i].DL_acc += (prbu * sim_loop_int);
 	}
 
 	return SUCCESS;
 }
 
-/* The behavior of the UL here is similar of the one in the DL, even if it does
- * not make sense. Usually the UL frame is entirely assigned to one UE, and not
- * to a set of them. Still, statistics are saved not per sub-frame, but per
- * bigger intervals, so this behavior is not immediately visible.
- */
+int mac_fps_UL_schedule(em_mac * mac, em_ue * ues, u32 nof_ues)
+{
+	/* Not supported yet */
+	return SUCCESS;
+}
+
+/******************************************************************************
+ * MAC utilities:                                                             *
+ ******************************************************************************/
+
+/* Compute the DL part of the MAC layer */
+u32 mac_dl_compute()
+{
+	/* RAN mechanism bypass the normal scheduler */
+	if(sim_mac.ran) {
+		ran_DL_scheduler(&sim_mac, sim_ues, sim_nof_ues);
+	}
+
+	/* Use Fair PRBs Scheduler */
+	return mac_fps_DL_schedule(&sim_mac, sim_ues, sim_nof_ues);
+}
+
+/* Compute the UL part of the MAC layer */
 u32 mac_ul_compute()
 {
-#if 0
-	int i;
-
-	/* PRB steps: this is the amount of PRB per single UE */
-	int prbs;
-	/* Actually used PRBS */
-	int prbu = 0;
-	/* Total PRB left */
-	int prbt = sim_mac.UL.prb_max;
-
-	if(sim_nof_ues) {
-		prbs = sim_mac.UL.prb_max / sim_nof_ues;
-	} else {
-		prbs = 0;
-	}
-
-	/* Keep the used PRB used by each UE between 1 and 5 per UE */
-	if(prbs == 0) {
-		prbs = 1;
-	} else {
-		if(prbs > 5) {
-			prbs = 5;
-		}
-	}
-
-	for(i = 0; i < UE_MAX; i++) {
-		if(sim_ues[i].rnti == UE_RNTI_INVALID) {
-			continue;
-		}
-
-		/* No more resources to assign!*/
-		if(prbt <= 0) {
-			continue;
-		}
-
-		/* Less resources left than step ones; adapt it */
-		if(prbt <= prbs) {
-			prbs = prbt;
-		}
-
-		prbt -= prbs;
-		prbu += prbs;
-	}
-
-	if(sim_mac.UL_prb_in_use != prbu) {
-		sim_mac.UL.prb_in_use = prbu;
-	}
-
-	for(i=0; i < MAC_REPORT_MAX; i++) {
-		if(!sim_mac.mac_rep[i].mod) {
-			continue;
-		}
-
-		/* PRB used must be casted per sub-frame */
-		sim_mac.mac_rep[i].UL_acc += (prbu * sim_loop_int);
-	}
-#endif
-
+	/* No supported yet */
 	return SUCCESS;
 }
 
@@ -327,6 +337,8 @@ u32 mac_compute()
 	char            buf[MEDIUM_BUF];
 
 	ep_macrep_det   mac;
+
+	sim_mac.DL.tti = (sim_mac.DL.tti + 1) % 10240;
 
 	ret = mac_ul_compute();
 

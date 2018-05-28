@@ -119,7 +119,7 @@ int iface_mac_draw()
 		printw("SF %d", i);
 
 		for (j = 0; j < MAC_DL_PRBG_MAX; j++) {
-			move(9 + (j * 2), (iface_col / 2) - 51 + (i * 10));
+			move(9 + j, (iface_col / 2) - 51 + (i * 10));
 
 			if (i == sim_mac.DL.tti % 10) {
 				attron(COLOR_PAIR(IFACE_CPAIR_HIGHLIGHT));

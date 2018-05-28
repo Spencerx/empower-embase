@@ -61,6 +61,10 @@ int sce_parse_line(char * line, int size)
 		t4 = strtok_r(curr, ",", &curr);
 		t5 = strtok_r(curr, ",", &curr);
 
+		if(!t1 || !t2 || !t3 || !t4 || !t5) {
+			return ERR_SCE_PARSE_GRAM;
+		}
+
 		v2 = plmn_from_string(t3);
 
 		r = ue_add(
@@ -99,6 +103,10 @@ int sce_parse_line(char * line, int size)
 		t1 = strtok_r(curr, ",", &curr);
 		t2 = strtok_r(curr, ",", &curr);
 		t3 = strtok_r(curr, ",", &curr);
+
+		if(!t1 || !t2 || !t3) {
+			return ERR_SCE_PARSE_GRAM;
+		}
 
 		neigh_add_ipv4(atoi(t1), 0, t2, atoi(t3));
 	}
