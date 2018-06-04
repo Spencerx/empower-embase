@@ -34,7 +34,7 @@
  ******************************************************************************/
 
 /* Id of the agent associated with the simulator. */
-u32 sim_ID = 0;
+u32 sim_ID = 1;
 /* 1 second of default interval time */
 u32 sim_loop_int = 1000;
 /* Headless start? */
@@ -222,10 +222,10 @@ int main(int argc, char ** argv) {
 		return 0;
 	}
 
-	snprintf(logp, 256, "emlog.%d.log", getpid());
+	snprintf(logp, 256, "embase.%d.log", getpid());
 
 	/* Initialize the logging subsystem. */
-	if(log_init(logp)) {
+	if(log_init(logp) < 0) {
 		return 0;
 	}
 

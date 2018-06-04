@@ -27,8 +27,13 @@
 #define LOG_PROC_SPACE		"25"
 
 #define LOG_TRAW(x, ...)	fprintf(sim_logFD, x, ##__VA_ARGS__)
-#define LOG_TRACE(x, ...)	fprintf(                             \
-	sim_logFD, "%-"LOG_PROC_SPACE"s: "x, __func__, ##__VA_ARGS__)
+#define LOG_TRACE(x, ...)	\
+	do {                                                   \
+		fprintf(sim_logFD, "%-"LOG_PROC_SPACE"s: "x,   \
+		  __func__, ##__VA_ARGS__);                    \
+		fflush(sim_logFD);                             \
+	} while(0)
+
 
 /******************************************************************************
  * Globals used all around the simulator:                                     *

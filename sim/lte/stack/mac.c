@@ -152,16 +152,7 @@ int mac_fps_DL_schedule(em_mac * mac, em_ue * ues, u32 nof_ues)
 	} else {
 		prbs = 0;
 	}
-#if 0
-	/* Keep the used PRB used by each UE between 1 and 5 per UE */
-	if(prbs == 0) {
-		prbs = 1;
-	} else {
-		if(prbs > 5) {
-			prbs = 5;
-		}
-	}
-#endif
+
 	/* Select the right amount of resources based on the bandwidth */
 	if(mac->DL.prb_max  == MAC_PRB_1_4) {
 		prbs = MAC_DL_RGS_1_4;
