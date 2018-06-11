@@ -354,11 +354,11 @@ u32 mac_compute()
 		if(ts_diff_to_ms(sim_mac.mac_rep[i].last, now) >=
 			sim_mac.mac_rep[i].interval) {
 
-			mac.DL_prbs_used   = sim_mac.mac_rep[i].DL_acc;
-			mac.DL_prbs_total  = sim_mac.DL.prb_max;
+			mac.DL_prbs_used  = sim_mac.mac_rep[i].DL_acc;
+			mac.DL_prbs_total = sim_mac.DL.prb_max;
 
-			mac.UL_prbs_used   = sim_mac.mac_rep[i].UL_acc;
-			mac.UL_prbs_total  = sim_mac.UL.prb_max;
+			mac.UL_prbs_used  = sim_mac.mac_rep[i].UL_acc;
+			mac.UL_prbs_total = sim_mac.UL.prb_max;
 
 			mlen = epf_trigger_macrep_rep(
 				buf,
@@ -373,8 +373,8 @@ u32 mac_compute()
 			/* Reset the state of this report */
 			sim_mac.mac_rep[i].last.tv_nsec = now.tv_nsec;
 			sim_mac.mac_rep[i].last.tv_sec  = now.tv_sec;
-			sim_mac.mac_rep[i].DL_acc       = 0;
-			sim_mac.mac_rep[i].UL_acc       = 0;
+			//sim_mac.mac_rep[i].DL_acc       = 0;
+			//sim_mac.mac_rep[i].UL_acc       = 0;
 		}
 	}
 

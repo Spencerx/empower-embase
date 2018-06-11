@@ -125,9 +125,9 @@ typedef struct __em_sim_mac_report {
 	u32 interval;
 
 	/* Accumulator for the Downlink */
-	u64 DL_acc;
+	u32 DL_acc;
 	/* Accumulator for the Uplink*/
-	u64 UL_acc;
+	u32 UL_acc;
 
 	/* Last time the interval has been triggered */
 	struct timespec last;
@@ -150,9 +150,9 @@ typedef struct __em_sim_mac_DL {
 	int             tti;
 
 	/* Total amount of DL PRBs that can be allocated */
-	u16             prb_max;
+	u8              prb_max;
 	/* Total amount of DL PRBs in use */
-	u16             prb_in_use;
+	u8              prb_in_use;
 
 	/* Last time the DL has been scheduled */
 	struct timespec last;
