@@ -40,9 +40,13 @@
  ******************************************************************************/
 
 /* Id of the agent associated with the simulator. */
-extern u32 sim_ID;
+extern u32    sim_ID;
 /* Interval in ms of the main loop */
-extern u32 sim_loop_int;
+extern u32    sim_loop_int;
+/* Address of the controller to communicate with */
+extern char   sim_ctrl_addr[64];
+/* Port used to connect to the controller */
+extern u16    sim_ctrl_port;
 
 /******************************************************************************
  * Globals utilities:                                                         *

@@ -35,9 +35,9 @@ u32 phy_init()
 
 	/* Initialize cells with invalid ids */
 	for(i = 0; i < PHY_CELL_MAX; i++) {
-		sim_phy.cells[0].pci = 0xffff;
+		sim_phy.cells[i].pci = PHY_PCI_INVALID;
 	}
-
+#if 0
 	/* Only one cell by default */
 	sim_phy.nof_cells          = 1;
 
@@ -46,7 +46,7 @@ u32 phy_init()
 	sim_phy.cells[0].UL_earfcn = sim_phy.cells[0].DL_earfcn + 18000;
 	sim_phy.cells[0].DL_prb    = 25;
 	sim_phy.cells[0].UL_prb    = 25;
-
+#endif
 	return SUCCESS;
 }
 

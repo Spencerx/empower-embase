@@ -37,9 +37,9 @@
  ******************************************************************************/
 
 /* File descriptor used for network communication between eNBs. */
-int            sim_x2_fd   = 0;
+int sim_x2_fd   = 0;
 /* Port used for X2 interface */
-unsigned short sim_x2_port = X2_DEFAULT_PORT;
+u16 sim_x2_port = X2_DEFAULT_PORT;
 
 /******************************************************************************
  * Private procedures for X2 module only:                                     *

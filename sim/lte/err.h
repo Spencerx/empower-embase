@@ -76,6 +76,13 @@ enum __em_sim_errors {
 	ERR_PHY_INIT,
 
 	/*
+	 * STACK errors:
+	 */
+
+	/* No more slots available for new cells */
+	ERR_STK_ADD_CELL_NOSLOTS,
+
+	/*
 	 * SCENARIO errors:
 	 */
 
@@ -134,6 +141,8 @@ enum __em_sim_errors {
 	ERR_UE_ADD_EXISTS,
 	/* No more slot left for other UEs. */
 	ERR_UE_ADD_FULL,
+	/* UE added to an unknown PCI */
+	ERR_UE_ADD_PCI_UNKNOWN,
 
 	/*
 	 * WRAP errors:

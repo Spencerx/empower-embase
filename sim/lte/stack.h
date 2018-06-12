@@ -25,7 +25,8 @@
 #include <emtypes.h>
 
 /* 3 kinds of Primary Sync. sequence for 168 of Secondary Sync. sequences. */
-#define PHY_PCI_MAX                     504
+#define PHY_PCI_MAX                     503
+#define PHY_PCI_INVALID                 0xffff
 
 #define PHY_RSRP_LOWER                 -140.0
 #define PHY_RSRP_HIGHER                -80.0

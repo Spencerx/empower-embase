@@ -88,6 +88,19 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi, int rep)
 	/* Clean everything before the use. */
 	memset(&sim_ues[f], 0, sizeof(em_ue));
 
+	/* Check the validity of the Physical Cell ID */
+	for(i = 0; i < PHY_CELL_MAX; i++) {
+		if(sim_phy.cells[i].pci == pci) {
+			break;
+		}
+	}
+
+	/* Cell where to include this UE not found */
+	if(i == PHY_CELL_MAX) {
+		LOG_UE("Cell %d not available for UE\n", pci);
+		return ERR_UE_ADD_PCI_UNKNOWN;
+	}
+
 	sim_ues[f].pci   = pci;
 	sim_ues[f].rnti  = rnti;
 	sim_ues[f].plmn  = plmnid;

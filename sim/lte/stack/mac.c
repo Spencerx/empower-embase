@@ -272,7 +272,7 @@ u32 mac_dl_compute()
 {
 	/* RAN mechanism bypass the normal scheduler */
 	if(sim_mac.ran) {
-		ran_DL_scheduler(&sim_mac, sim_ues, sim_nof_ues);
+		return ran_DL_scheduler(&sim_mac, sim_ues, sim_nof_ues);
 	}
 
 	/* Use Fair PRBs Scheduler */

@@ -41,7 +41,7 @@ u32 sim_loop_int = 1000;
 u32 sim_hl = 0;
 
 /* Address of the controller */
-char * sim_ctrl_addr = "127.0.0.1";
+char sim_ctrl_addr[64] = "127.0.0.1";
 /* Port used to connect to the controller */
 u16    sim_ctrl_port = 2210;
 
@@ -92,7 +92,7 @@ void parse_cell(char * args)
 	char * ul_prb;
 
 	if(sim_phy.nof_cells == PHY_CELL_MAX) {
-		LOG_MAIN("Error: Too many cells defined!\n");
+		LOG_MAIN("No slots left for additional cells!\n");
 		return;
 	}
 
@@ -107,8 +107,8 @@ void parse_cell(char * args)
 		atoi(dl_earfcn),
 		atoi(ul_earfcn),
 		(unsigned char)atoi(dl_prb),
-		(unsigned char)atoi(ul_prb))) {
-
+		(unsigned char)atoi(ul_prb)))
+	{
 		LOG_MAIN("Cell configuration failed!\n");
 		exit(0);
 	}
@@ -117,7 +117,6 @@ void parse_cell(char * args)
 void parse_args(int argc, char ** argv)
 {
 	int i;
-	int cb = 0;
 
 	for(i = 1; i < argc; i++) {
 		if(strcmp(argv[i], "--id") == 0) {
@@ -130,16 +129,6 @@ void parse_args(int argc, char ** argv)
 		}
 
 		if(strcmp(argv[i], "--cell") == 0) {
-			/* Perform default cell bypass */
-			if(!cb) {
-				sim_phy.nof_cells  = 0;
-
-				sim_mac.DL.prb_max = 0;
-				sim_mac.UL.prb_max = 0;
-
-				cb = 1;
-			}
-
 			parse_cell(argv[i + 1]);
 			i = i + 1;
 
@@ -152,7 +141,7 @@ void parse_args(int argc, char ** argv)
 				continue;
 			}
 
-			sim_ctrl_addr = argv[i + 1];
+			strncpy(sim_ctrl_addr, argv[i + 1], 64);
 			i++;
 
 			LOG_MAIN("Will connect to controller %s\n",
@@ -186,7 +175,7 @@ void parse_args(int argc, char ** argv)
 
 		if(strcmp(argv[i], "--scenario") == 0) {
 			if(i + 1 >= argc) {
-				LOG_MAIN("--scenario is missing a path\n");
+				LOG_MAIN("Scenario is missing a path\n");
 				continue;
 			}
 
@@ -239,6 +228,12 @@ int main(int argc, char ** argv) {
 
 	/* Examine arguments. */
 	parse_args(argc, argv);
+
+	/* Nobody has set up a cell in the simulator yet... */
+	if(sim_phy.nof_cells == 0) {
+		/* Add the default cell */
+		stack_add_cell(1, 1750, 19750, 25, 25);
+	}
 
 	/* Start the agent. */
 	em_start(sim_ID, &sim_ops, sim_ctrl_addr, sim_ctrl_port);

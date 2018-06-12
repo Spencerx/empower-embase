@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 Kewin Rausch
+/* Copyright (c) 2018 Kewin Rausch
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,10 @@
 /* Parse a single line and apply effects in the simulator
  *
  * Current grammar supported is really easy, and the cases are:
- * 	UE, rnti, imsi, plmn, rsrp, rsrq
- * 	NEIGH, id, IPv4, port
+ *      UE, rnti, imsi, plmn, pci, rsrp, rsrq
+ *      NEIGH, id, IPv4, port
+ *      CELL, id, dl_earfcn, ul_earfcn, dl_prb, ul_prb
+ *      THIS, id, ctrl_addr, ctrl_port, x2 port
  */
 int sce_parse_line(char * line, int size)
 {
@@ -42,6 +44,7 @@ int sce_parse_line(char * line, int size)
 	char * t3;
 	char * t4;
 	char * t5;
+	char * t6;
 
 	/* General purpose variable */
 	//u16    v1;
@@ -60,15 +63,16 @@ int sce_parse_line(char * line, int size)
 		t3 = strtok_r(curr, ",", &curr);
 		t4 = strtok_r(curr, ",", &curr);
 		t5 = strtok_r(curr, ",", &curr);
+		t6 = strtok_r(curr, ",", &curr);
 
-		if(!t1 || !t2 || !t3 || !t4 || !t5) {
+		if(!t1 || !t2 || !t3 || !t4 || !t5 || !t6) {
 			return ERR_SCE_PARSE_GRAM;
 		}
 
 		v2 = plmn_from_string(t3);
 
 		r = ue_add(
-			sim_phy.cells[0].pci,
+			atoi(t4),
 			sim_phy.cells[0].DL_earfcn,
 			atoi(t1),
 			v2,
@@ -77,7 +81,7 @@ int sce_parse_line(char * line, int size)
 
 		/* If successful then apply the right signal power */
 		if(r >= 0) {
-			sim_ues[r].meas[0].rs.rsrp = (sp)atof(t4);
+			sim_ues[r].meas[0].rs.rsrp = (sp)atof(t5);
 
 			if(sim_ues[r].meas[0].rs.rsrp > PHY_RSRP_HIGHER) {
 				sim_ues[r].meas[0].rs.rsrp = PHY_RSRP_HIGHER;
@@ -87,7 +91,7 @@ int sce_parse_line(char * line, int size)
 				sim_ues[r].meas[0].rs.rsrp = PHY_RSRP_LOWER;
 			}
 
-			sim_ues[r].meas[0].rs.rsrq = (sp)atof(t5);
+			sim_ues[r].meas[0].rs.rsrq = (sp)atof(t6);
 
 			if(sim_ues[r].meas[0].rs.rsrq > PHY_RSRQ_HIGHER) {
 				sim_ues[r].meas[0].rs.rsrq = PHY_RSRQ_HIGHER;
@@ -109,6 +113,48 @@ int sce_parse_line(char * line, int size)
 		}
 
 		neigh_add_ipv4(atoi(t1), 0, t2, atoi(t3));
+	}
+	/* CELL case */
+	else if(strcmp(word, "CELL") == 0) {
+		t1 = strtok_r(curr, ",", &curr);
+		t2 = strtok_r(curr, ",", &curr);
+		t3 = strtok_r(curr, ",", &curr);
+		t4 = strtok_r(curr, ",", &curr);
+		t5 = strtok_r(curr, ",", &curr);
+
+		if(!t1 || !t2 || !t3 || !t4 || !t5) {
+			return ERR_SCE_PARSE_GRAM;
+		}
+
+		/* Add the cell */
+		stack_add_cell(
+			(u16)atoi(t1),
+			(u32)atoi(t2),
+			(u32)atoi(t3),
+			(u8) atoi(t4),
+			(u8) atoi(t5));
+	}
+	/* THIS case */
+	else if(strcmp(word, "THIS") == 0) {
+		t1 = strtok_r(curr, ",", &curr);
+		t2 = strtok_r(curr, ",", &curr);
+		t3 = strtok_r(curr, ",", &curr);
+		t4 = strtok_r(curr, ",", &curr);
+
+		if(!t1 || !t2 || !t3 || !t4) {
+			return ERR_SCE_PARSE_GRAM;
+		}
+
+		sim_ID        = atoi(t1);
+
+		/* Remove meaningless white spaces that mess around */
+		while(*t2 == ' ') {
+			t2++;
+		}
+
+		strncpy(sim_ctrl_addr, t2, 64);
+		sim_ctrl_port = (u16)atoi(t3);
+		sim_x2_port   = (u16)atoi(t4);
 	}
 
 	return SUCCESS;
@@ -174,12 +220,37 @@ int sce_save(char * path)
 		return ERR_SCE_LOAD_IO;
 	}
 
+	/* This eNB profile */
+	bs = sprintf(buf, "THIS, %d, %s, %d, %d\n",
+		sim_ID,
+		sim_ctrl_addr,
+		sim_ctrl_port,
+		sim_x2_port);
+
+	fwrite(buf, 1, bs, fd);
+
+	/* This eNB cells */
+	for(i = 0; i < PHY_CELL_MAX; i++) {
+		if(sim_phy.cells[i].pci != PHY_PCI_INVALID) {
+			bs = sprintf(buf, "CELL, %d, %d, %d, %d, %d\n",
+				sim_phy.cells[i].pci,
+				sim_phy.cells[i].DL_earfcn,
+				sim_phy.cells[i].UL_earfcn,
+				sim_phy.cells[i].DL_prb,
+				sim_phy.cells[i].UL_prb);
+
+			fwrite(buf, 1, bs, fd);
+		}
+	}
+
+	/* User equipments */
 	for(i = 0; i < UE_MAX; i++) {
 		if(sim_ues[i].rnti != UE_RNTI_INVALID) {
-			bs = sprintf(buf, "UE, %d, %ld, %x, %f, %f\n",
+			bs = sprintf(buf, "UE, %d, %ld, %x, %d, %f, %f\n",
 				sim_ues[i].rnti,
 				sim_ues[i].imsi,
 				sim_ues[i].plmn,
+				sim_ues[i].pci,
 				sim_ues[i].meas[0].rs.rsrp,
 				sim_ues[i].meas[0].rs.rsrq);
 
@@ -187,6 +258,7 @@ int sce_save(char * path)
 		}
 	}
 
+	/* Neighbor eNBs*/
 	for(i = 0; i < NEIGH_MAX; i++) {
 		if(sim_neighs[i].id != NEIGH_INVALID_ID) {
 			bs = sprintf(buf, "NEIGH, %d, %s, %d\n",
