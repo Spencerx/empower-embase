@@ -272,7 +272,7 @@ u32 ue_compute_measurements()
 				buf,
 				MEDIUM_BUF,
 				sim_ID,
-				sim_ues[i].meas[j].pci,
+				sim_ues[i].pci,
 				sim_ues[i].meas[j].mod_id,
 				mi,
 				UE_RRCM_MAX,
