@@ -102,7 +102,7 @@ int wrap_disconnected()
 int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 {
 	int         i;
-	char        buf[SMALL_BUF] = {0};
+	char        buf[MEDIUM_BUF] = {0};
 	ep_cell_det cell;
 	int         blen;
 
@@ -117,7 +117,7 @@ int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 	/* Cell not found */
 	if(i == PHY_CELL_MAX) {
 		blen = epf_single_ecap_rep_fail(
-			buf, SMALL_BUF, sim_ID, cell_id, mod);
+			buf, MEDIUM_BUF, sim_ID, cell_id, mod);
 
 		if(blen < 0) {
 			LOG_WRAP("Cannot format cell setup reply!\n");
@@ -136,7 +136,7 @@ int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 
 	blen = epf_single_ccap_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[i].pci,
 		mod,
@@ -156,30 +156,30 @@ int wrap_cell_setup_request(uint32_t mod, uint16_t cell_id)
 int wrap_enb_setup_request()
 {
 	int         i;
-	char        buf[SMALL_BUF] = {0};
-	ep_cell_det cells[PHY_CELL_MAX];
+	char        buf[MEDIUM_BUF] = {0};
+	ep_enb_det  enbd;
 	int         blen;
 
 	LOG_WRAP("eNB setup request received!\n");
 
+	enbd.capmask = EP_ECAP_UE_REPORT | EP_ECAP_UE_MEASURE;
+
 	for(i = 0; i < sim_phy.nof_cells; i++) {
-		cells[i].cap       = EP_CCAP_NOTHING;
-		cells[i].pci       = sim_phy.cells[i].pci;
-		cells[i].DL_earfcn = sim_phy.cells[i].DL_earfcn;
-		cells[i].UL_earfcn = sim_phy.cells[i].UL_earfcn;
-		cells[i].DL_prbs   = (uint8_t)sim_phy.cells[i].DL_prb;
-		cells[i].UL_prbs   = (uint8_t)sim_phy.cells[i].UL_prb;
+		enbd.cells[i].cap       = EP_CCAP_MAC_REPORT;
+		enbd.cells[i].pci       = sim_phy.cells[i].pci;
+		enbd.cells[i].DL_earfcn = sim_phy.cells[i].DL_earfcn;
+		enbd.cells[i].UL_earfcn = sim_phy.cells[i].UL_earfcn;
+		enbd.cells[i].DL_prbs   = (uint8_t)sim_phy.cells[i].DL_prb;
+		enbd.cells[i].UL_prbs   = (uint8_t)sim_phy.cells[i].UL_prb;
 	}
 
 	blen = epf_single_ecap_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		0,
 		0,
-		EP_ECAP_UE_REPORT,
-		cells,
-		sim_phy.nof_cells);
+		&enbd);
 
 	if(blen < 0) {
 		LOG_WRAP("Cannot format eNB setup reply!\n");
@@ -199,7 +199,7 @@ int wrap_handover(
 	uint16_t target_cell,
 	uint8_t  cause)
 {
-	char buf[SMALL_BUF] = {0};
+	char buf[MEDIUM_BUF] = {0};
 	int  blen;
 
 	LOG_WRAP("UE handover requested for RNTI %d\n", rnti);
@@ -209,7 +209,7 @@ int wrap_handover(
 
 		blen = epf_single_ho_rep_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			source_cell,
 			mod,
@@ -252,7 +252,7 @@ int wrap_ue_measure(
 	int  i;
 	int  j;
 	int  k;
-	char buf[SMALL_BUF] = {0};
+	char buf[MEDIUM_BUF] = {0};
 	int  blen;
 
 	LOG_WRAP("Controller module %d requested UE %d measure %d on freq %d\n",
@@ -269,7 +269,7 @@ int wrap_ue_measure(
 		LOG_WRAP("UE %d not found\n", rnti);
 
 		blen = epf_trigger_uemeas_rep_fail(
-			buf, SMALL_BUF, sim_ID, 0, mod);
+			buf, MEDIUM_BUF, sim_ID, 0, mod);
 
 		if(blen < 0) {
 			LOG_WRAP("Cannot format UE measure reply!\n");
@@ -291,7 +291,7 @@ int wrap_ue_measure(
 		LOG_WRAP("Too many active measurements for RNTI %x\n", rnti);
 
 		blen = epf_trigger_uemeas_rep_fail(
-			buf, SMALL_BUF, sim_ID, 0, mod);
+			buf, MEDIUM_BUF, sim_ID, 0, mod);
 
 		if(blen < 0) {
 			LOG_WRAP("Cannot format UE measure reply!\n");
@@ -343,7 +343,7 @@ int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
 	int  i;
 	int  m = -1;
 
-	char buf[SMALL_BUF] = {0};
+	char buf[MEDIUM_BUF] = {0};
 	int  blen;
 
 	LOG_WRAP("Controller module %d requested a MAC report\n", mod);
@@ -362,7 +362,7 @@ int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
 
 	if(m == -1) {
 		blen = epf_trigger_macrep_rep_fail(
-			buf, SMALL_BUF, sim_ID, 0, mod);
+			buf, MEDIUM_BUF, sim_ID, 0, mod);
 
 		em_send(sim_ID, buf, blen);
 
@@ -378,7 +378,7 @@ int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
 /* Handles a RAN setup request */
 int wrap_ran_setup(uint32_t mod)
 {
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	ep_ran_det rd;
@@ -391,7 +391,7 @@ int wrap_ran_setup(uint32_t mod)
 
 		blen = epf_single_ran_setup_ns(
 			buf, 
-			SMALL_BUF, 
+			MEDIUM_BUF,
 			sim_ID, 
 			sim_phy.cells[0].pci, 
 			mod);
@@ -407,7 +407,7 @@ int wrap_ran_setup(uint32_t mod)
 
 	blen = epf_single_ran_setup_rep(
 		buf, 
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod,
@@ -425,7 +425,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 {
 	int i;
 
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	uint32_t        nofu = 0;
@@ -440,7 +440,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 
 		blen = epf_single_ran_user_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -480,7 +480,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 
 		blen = epf_single_ran_user_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -494,7 +494,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 
 	blen = epf_single_ran_usr_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod,
@@ -510,7 +510,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 
 int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 {
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	ep_ran_user_det ud;
@@ -524,7 +524,7 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 
 		blen = epf_single_ran_user_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -542,7 +542,7 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 
 		blen = epf_single_ran_user_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -561,7 +561,7 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 
 	blen = epf_single_ran_usr_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod,
@@ -577,7 +577,7 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 
 int wrap_ran_rem_user(uint32_t mod, uint16_t rnti)
 {
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	ep_ran_user_det ud;
@@ -590,7 +590,7 @@ int wrap_ran_rem_user(uint32_t mod, uint16_t rnti)
 
 		blen = epf_single_ran_user_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -607,7 +607,7 @@ int wrap_ran_rem_user(uint32_t mod, uint16_t rnti)
 
 		blen = epf_single_ran_user_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -626,7 +626,7 @@ int wrap_ran_rem_user(uint32_t mod, uint16_t rnti)
 
 	blen = epf_single_ran_usr_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod,
@@ -644,7 +644,7 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 {
 	int  i;
 
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	int  noft = 0;
@@ -660,7 +660,7 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 
 		blen = epf_single_ran_tenant_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -696,7 +696,7 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 
 	blen = epf_single_ran_ten_rep(
 		buf, 
-		SMALL_BUF, 
+		MEDIUM_BUF,
 		sim_ID, 
 		sim_phy.cells[0].pci,
 		mod,
@@ -714,7 +714,7 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 
 int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 {
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	ep_ran_tenant_det td = { 0 };
@@ -728,7 +728,7 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 
 		blen = epf_single_ran_tenant_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -746,7 +746,7 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 
 		blen = epf_single_ran_tenant_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -764,7 +764,7 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 
 		blen = epf_single_ran_tenant_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -781,7 +781,7 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 
 	blen = epf_single_ran_ten_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod,
@@ -797,7 +797,7 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 
 int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 {
-	char buf[SMALL_BUF];
+	char buf[MEDIUM_BUF];
 	int  blen;
 
 	ep_ran_tenant_det td = { 0 };
@@ -811,7 +811,7 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 
 		blen = epf_single_ran_tenant_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -830,7 +830,7 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 
 		blen = epf_single_ran_tenant_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -848,7 +848,7 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 
 		blen = epf_single_ran_tenant_fail(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -865,7 +865,7 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 
 	blen = epf_single_ran_ten_rep(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod,
@@ -902,7 +902,7 @@ int wrap_ran_get_param(
 
 		blen = epf_single_ran_schedule_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -920,7 +920,7 @@ int wrap_ran_get_param(
 
 		blen = epf_single_ran_schedule_ns(
 			buf,
-			SMALL_BUF,
+			MEDIUM_BUF,
 			sim_ID,
 			sim_phy.cells[0].pci,
 			mod);
@@ -1020,7 +1020,7 @@ int wrap_ran_set_param(
 
 	blen = epf_single_ran_schedule_ns(
 		buf,
-		SMALL_BUF,
+		MEDIUM_BUF,
 		sim_ID,
 		sim_phy.cells[0].pci,
 		mod);
@@ -1043,13 +1043,13 @@ struct em_agent_ops sim_ops = {
 	.ue_report               = wrap_ue_report,
 	.ue_measure              = wrap_ue_measure,
 	.mac_report              = wrap_mac_report,
-	.ran_setup_request       = wrap_ran_setup,
-	.ran_user_request        = wrap_ran_user,
-	.ran_user_add            = wrap_ran_add_user,
-	.ran_user_rem            = wrap_ran_rem_user,
-	.ran_tenant_request      = wrap_ran_ten,
-	.ran_tenant_add          = wrap_ran_add_ten,
-	.ran_tenant_rem          = wrap_ran_rem_ten,
-	.ran_sched_get_parameter = wrap_ran_get_param,
-	.ran_sched_set_parameter = wrap_ran_set_param,
+	.ran.setup_request       = wrap_ran_setup,
+	.ran.user_request        = wrap_ran_user,
+	.ran.user_add            = wrap_ran_add_user,
+	.ran.user_rem            = wrap_ran_rem_user,
+	.ran.tenant_request      = wrap_ran_ten,
+	.ran.tenant_add          = wrap_ran_add_ten,
+	.ran.tenant_rem          = wrap_ran_rem_ten,
+	.ran.sched_get_parameter = wrap_ran_get_param,
+	.ran.sched_set_parameter = wrap_ran_set_param,
 };
