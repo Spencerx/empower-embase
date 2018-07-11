@@ -173,6 +173,8 @@ int wrap_enb_setup_request()
 		enbd.cells[i].UL_prbs   = (uint8_t)sim_phy.cells[i].UL_prb;
 	}
 
+	enbd.nof_cells = sim_phy.nof_cells;
+
 	blen = epf_single_ecap_rep(
 		buf,
 		MEDIUM_BUF,
