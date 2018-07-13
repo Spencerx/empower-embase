@@ -200,38 +200,38 @@ typedef struct __em_sim_mac {
  #define RAN_USER_MAX		8
  #define RAN_USER_INVALID_ID	0x0
 
- #define RAN_TENANT_MAX		8
- #define RAN_TENANT_INVALID_ID	0x0
- #define RAN_TENANT_DEFAULT	0x1
+ #define RAN_SLICE_MAX		8
+ #define RAN_SLICE_INVALID_ID	0x0
+ #define RAN_SLICE_DEFAULT	0x1
 
 /* Description of a RAN UE */
 typedef struct __em_sim_ran_UE {
 	/* RNTI associated with the UE */
 	uint16_t rnti;
 	/* Tenant associated with this UE */
-	uint64_t tenant[RAN_TENANT_MAX];
+	uint64_t slice[RAN_SLICE_MAX];
 } em_ran_user;
 
-/* Description of a RAN tenant */
-typedef struct __em_sim_ran_tenant {
-	/* ID of this tenant */
+/* Description of a RAN slice */
+typedef struct __em_sim_ran_slice {
+	/* ID of this slice */
 	uint64_t  id;
 
-	/* User scheduler associated with the tenant */
+	/* User scheduler associated with the slice */
 	uint32_t  sched_id;
 	/* Has the user scheduler being initialized before? */
 	int       sched_init;
 	/* Private data used by the lower-level scheduler */
 	void *    sched_priv;
-} em_ran_tenant;
+} em_ran_slice;
 
 /* Provides a description of the RAN module of the simulator */
 typedef struct __em_sim_ran {
-	/* Id of the scheduler in charge of manage tenants */
+	/* Id of the scheduler in charge of manage slices */
 	uint32_t sched_id;
 
 	/* Tenants handled by the RAN module */
-	em_ran_tenant tenants[RAN_TENANT_MAX];
+	em_ran_slice slices[RAN_SLICE_MAX];
 	/* Registered users in RAN scheduler */
 	em_ran_user   users[RAN_USER_MAX];
 } em_ran;
@@ -279,40 +279,40 @@ u32 stack_init();
  */
 u32 ran_bootstrap();
 
-/* Adds a new RAN user->tenant association.
+/* Adds a new RAN user->slice association.
  *
  * Returns 0 on success, otherwise a negative error code.
  */
-u32 ran_add_user(u16 user, u64 tenant);
+u32 ran_add_user(u16 user, u64 slice);
 
-/* Removes a RAN user->tenant association.
- * If 'tenant' is specified to be 0, the entire user is removed.
+/* Removes a RAN user->slice association.
+ * If 'slice' is specified to be 0, the entire user is removed.
  *
  * Returns 0 on success, otherwise a negative error code.
  */
-u32 ran_rem_user(u16 user, u64 tenant);
+u32 ran_rem_user(u16 user, u64 slice);
 
 /* Adds a new Tenant inside the RAN subsystem.
  *
  * Returns 0 on success, otherwise a negative error code.
  */
-u32 ran_add_tenant(u64 tenant, u32 sched);
+u32 ran_add_slice(u64 slice, u32 sched);
 
 /* Removes an existing Tenant from the RAN subsystem.
  *
  * Returns 0 on success, otherwise a negative error code.
  */
-u32 ran_rem_tenant(u64 tenant);
+u32 ran_rem_slice(u64 slice);
 
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  * WARNING: This part is temporary and can be removed in future.
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
-/* Format a given buffer with the tenant map.
+/* Format a given buffer with the slice map.
  *
  * Returns 0 on success, otherwise a negative error code.
  */
-u32 ran_format_tenant_map(char * buf, int len);
+u32 ran_format_slice_map(char * buf, int len);
 
 /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  * End of WARNING part.

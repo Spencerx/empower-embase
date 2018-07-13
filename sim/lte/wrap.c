@@ -405,7 +405,7 @@ int wrap_ran_setup(uint32_t mod)
 		return em_send(sim_ID, buf, blen);
 	}
 
-	rd.tenant_sched = sim_ran.sched_id;
+	rd.slice_sched = sim_ran.sched_id;
 
 	blen = epf_single_ran_setup_rep(
 		buf, 
@@ -459,7 +459,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 		for (i = 0; i < RAN_USER_MAX; i++) {
 			if (sim_ran.users[i].rnti == rnti) {
 				ud[0].id     = sim_ran.users[i].rnti;
-				ud[0].tenant = sim_ran.users[i].tenant[0];
+				ud[0].slice = sim_ran.users[i].slice[0];
 				nofu         = 1;
 				break;
 			}
@@ -470,7 +470,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 		for (i = 0; i < RAN_USER_MAX; i++) {
 			if (sim_ran.users[i].rnti != RAN_USER_INVALID_ID) {
 				ud[nofu].id     = sim_ran.users[i].rnti;
-				ud[nofu].tenant = sim_ran.users[i].tenant[0];
+				ud[nofu].slice = sim_ran.users[i].slice[0];
 				nofu++;
 			}
 		}
@@ -510,7 +510,7 @@ int wrap_ran_user(uint32_t mod, uint16_t rnti)
 	return em_send(sim_ID, buf, blen);
 }
 
-int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
+int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t slice)
 {
 	char buf[MEDIUM_BUF];
 	int  blen;
@@ -518,7 +518,7 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 	ep_ran_user_det ud;
 
 	LOG_WRAP("Controller module %d requested adding %d ---> %ld mapping\n",
-		mod, rnti, tenant);
+		mod, rnti, slice);
 
 	/* Negative reply if RAN mechanism is offline */
 	if (!sim_mac.ran) {
@@ -539,8 +539,8 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 	}
 
 	/* Operation was not successfull... */
-	if (ran_add_user(rnti, tenant) != SUCCESS) {
-		LOG_WRAP("RAN cannot map %d --> %ld\n", rnti, tenant);
+	if (ran_add_user(rnti, slice) != SUCCESS) {
+		LOG_WRAP("RAN cannot map %d --> %ld\n", rnti, slice);
 
 		blen = epf_single_ran_user_fail(
 			buf,
@@ -559,7 +559,7 @@ int wrap_ran_add_user(uint32_t mod, uint16_t rnti, uint64_t tenant)
 	/* Success reported by sending back info on the new mapping */
 
 	ud.id     = rnti;
-	ud.tenant = tenant;
+	ud.slice = slice;
 
 	blen = epf_single_ran_usr_rep(
 		buf,
@@ -624,7 +624,7 @@ int wrap_ran_rem_user(uint32_t mod, uint16_t rnti)
 	/* Success reported by sending back info on the new mapping  */
 
 	ud.id     = rnti;
-	ud.tenant = 0;    /* For zero here we express no association */
+	ud.slice = 0;    /* For zero here we express no association */
 
 	blen = epf_single_ran_usr_rep(
 		buf,
@@ -642,7 +642,7 @@ int wrap_ran_rem_user(uint32_t mod, uint16_t rnti)
 	return em_send(sim_ID, buf, blen);
 }
 
-int wrap_ran_ten(uint32_t mod, uint64_t tenant)
+int wrap_ran_ten(uint32_t mod, uint64_t slice)
 {
 	int  i;
 
@@ -651,16 +651,16 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 
 	int  noft = 0;
 
-	ep_ran_tenant_det td[RAN_TENANT_MAX] = {0};
+	ep_ran_slice_det td[RAN_SLICE_MAX] = {0};
 
-	LOG_WRAP("Controller module %d requested status of tenant %ld\n",
-		mod, tenant);
+	LOG_WRAP("Controller module %d requested status of slice %ld\n",
+		mod, slice);
 
 	/* Negative reply if RAN mechanism is offline */
 	if (!sim_mac.ran) {
 		LOG_WRAP("RAN subsystem disabled; notifying...\n");
 
-		blen = epf_single_ran_tenant_ns(
+		blen = epf_single_ran_slice_ns(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -675,21 +675,21 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 	}
 
 	/* Tenant at zero means all the tenants... */
-	if (!tenant) {
-		for (i = 0; i < RAN_TENANT_MAX; i++) {
-			if (sim_ran.tenants[i].id != RAN_TENANT_INVALID_ID) {
-				td[noft].id    = sim_ran.tenants[i].id;
-				td[noft].sched = sim_ran.tenants[i].sched_id;
+	if (!slice) {
+		for (i = 0; i < RAN_SLICE_MAX; i++) {
+			if (sim_ran.slices[i].id != RAN_SLICE_INVALID_ID) {
+				td[noft].id    = sim_ran.slices[i].id;
+				td[noft].sched = sim_ran.slices[i].sched_id;
 				noft++;
 			}
 		}
 	}
 	/* ...otherwise we are looking for a particular tenant */
 	else {
-		for (i = 0; i < RAN_TENANT_MAX; i++) {
-			if (sim_ran.tenants[i].id != tenant) {
-				td[noft].id    = sim_ran.tenants[i].id;
-				td[noft].sched = sim_ran.tenants[i].sched_id;
+		for (i = 0; i < RAN_SLICE_MAX; i++) {
+			if (sim_ran.slices[i].id != slice) {
+				td[noft].id    = sim_ran.slices[i].id;
+				td[noft].sched = sim_ran.slices[i].sched_id;
 				noft++;
 				break;
 			}
@@ -714,21 +714,21 @@ int wrap_ran_ten(uint32_t mod, uint64_t tenant)
 	return 0;
 }
 
-int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
+int wrap_ran_add_ten(uint32_t mod, uint64_t slice, uint32_t sched)
 {
 	char buf[MEDIUM_BUF];
 	int  blen;
 
-	ep_ran_tenant_det td = { 0 };
+	ep_ran_slice_det td = { 0 };
 
-	LOG_WRAP("Controller module %d requested to add tenant %ld\n",
-		mod, tenant);
+	LOG_WRAP("Controller module %d requested to add slice %ld\n",
+		mod, slice);
 
 	/* Negative reply if RAN mechanism is offline */
 	if (!sim_mac.ran) {
 		LOG_WRAP("RAN subsystem disabled; notifying...\n");
 
-		blen = epf_single_ran_tenant_ns(
+		blen = epf_single_ran_slice_ns(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -743,10 +743,10 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 	}
 
 	/* Not accepting tenant IDs 0 or 1 (reserved ones) */
-	if (tenant == 0 || tenant == 1) {
-		LOG_WRAP("Cannot add Tenant ID %ld; it's reserved\n", tenant);
+	if (slice == 0 || slice == 1) {
+		LOG_WRAP("Cannot add Tenant ID %ld; it's reserved\n", slice);
 
-		blen = epf_single_ran_tenant_fail(
+		blen = epf_single_ran_slice_fail(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -760,11 +760,11 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 		return em_send(sim_ID, buf, blen);
 	}
 
-	/* Try to add the tenant */
-	if (ran_add_tenant(tenant, sched) != SUCCESS) {
-		LOG_WRAP("Failed to add new tenant\n");
+	/* Try to add the slice */
+	if (ran_add_slice(slice, sched) != SUCCESS) {
+		LOG_WRAP("Failed to add new slice\n");
 
-		blen = epf_single_ran_tenant_fail(
+		blen = epf_single_ran_slice_fail(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -778,7 +778,7 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 		return em_send(sim_ID, buf, blen);
 	}
 
-	td.id    = tenant;
+	td.id    = slice;
 	td.sched = sched;
 
 	blen = epf_single_ran_ten_rep(
@@ -797,21 +797,21 @@ int wrap_ran_add_ten(uint32_t mod, uint64_t tenant, uint32_t sched)
 	return em_send(sim_ID, buf, blen);
 }
 
-int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
+int wrap_ran_rem_ten(uint32_t mod, uint64_t slice)
 {
 	char buf[MEDIUM_BUF];
 	int  blen;
 
-	ep_ran_tenant_det td = { 0 };
+	ep_ran_slice_det td = { 0 };
 
-	LOG_WRAP("Controller module %d requested to remove tenant %ld\n",
-		mod, tenant);
+	LOG_WRAP("Controller module %d requested to remove slice %ld\n",
+		mod, slice);
 
 	/* Negative reply if RAN mechanism is offline */
 	if (!sim_mac.ran) {
 		LOG_WRAP("RAN subsystem disabled; notifying...\n");
 
-		blen = epf_single_ran_tenant_ns(
+		blen = epf_single_ran_slice_ns(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -825,12 +825,12 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 		return em_send(sim_ID, buf, blen);
 	}
 
-	/* Not accepting tenant IDs 0 or 1 (reserved ones) */
-	if (tenant == 0 || tenant == 1) {
+	/* Not accepting slice IDs 0 or 1 (reserved ones) */
+	if (slice == 0 || slice == 1) {
 		LOG_WRAP("Cannot remove Tenant ID %ld; it's reserved\n", 
-			tenant);
+			slice);
 
-		blen = epf_single_ran_tenant_fail(
+		blen = epf_single_ran_slice_fail(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -844,11 +844,11 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 		return em_send(sim_ID, buf, blen);
 	}
 
-	/* Try to remove the tenant */
-	if (ran_rem_tenant(tenant) != SUCCESS) {
-		LOG_WRAP("Failed to remove tenant\n");
+	/* Try to remove the slice */
+	if (ran_rem_slice(slice) != SUCCESS) {
+		LOG_WRAP("Failed to remove slice\n");
 
-		blen = epf_single_ran_tenant_fail(
+		blen = epf_single_ran_slice_fail(
 			buf,
 			MEDIUM_BUF,
 			sim_ID,
@@ -862,8 +862,8 @@ int wrap_ran_rem_ten(uint32_t mod, uint64_t tenant)
 		return em_send(sim_ID, buf, blen);
 	}
 
-	td.id    = tenant;
-	td.sched = 0; /* Zero identify an invalid tenant */
+	td.id    = slice;
+	td.sched = 0; /* Zero identify an invalid slice */
 
 	blen = epf_single_ran_ten_rep(
 		buf,
@@ -885,7 +885,7 @@ int wrap_ran_get_param(
 	uint32_t            mod,
 	uint32_t            id,
 	uint8_t             type,
-	uint64_t            tenant,
+	uint64_t            slice,
 	ep_ran_sparam_det * param)
 {
 	char buf[MEDIUM_BUF];
@@ -934,8 +934,8 @@ int wrap_ran_get_param(
 		return em_send(sim_ID, buf, blen);
 	}
 
-	/* It's a top-level, tenants scheduler */
-	if (type == EP_RAN_SCHED_TENANT_TYPE) {
+	/* It's a top-level, slices scheduler */
+	if (type == EP_RAN_SCHED_SLICE_TYPE) {
 		/* Requesting to know the state of TTI window of scheduler 1*/
 		if (strncmp(param->name, "tti_window", param->name_len) == 0) {
 			p.name      = "tti_window";
@@ -960,12 +960,12 @@ int wrap_ran_get_param(
 			return em_send(sim_ID, buf, blen);
 		}
 
-		/* Requesting to know the state of the tenants map */
-		if (strncmp(param->name, "tenant_map", param->name_len) == 0) {
-			tmsize = ran_format_tenant_map(tm, MEDIUM_BUF);
+		/* Requesting to know the state of the slices map */
+		if (strncmp(param->name, "slice_map", param->name_len) == 0) {
+			tmsize = ran_format_slice_map(tm, MEDIUM_BUF);
 
-			p.name      = "tenant_map";
-			p.name_len  = sizeof("tenant_map");
+			p.name      = "slice_map";
+			p.name_len  = sizeof("slice_map");
 			p.value     = tm;
 			p.value_len = tmsize;
 
@@ -986,10 +986,10 @@ int wrap_ran_get_param(
 			return em_send(sim_ID, buf, blen);
 		}
 	}
-	/* It's an user scheduler which belongs to a tenant */
+	/* It's an user scheduler which belongs to a slice */
 	else {
-		LOG_WRAP("You are not supposed to tune sched 1 of tenant %ld\n",
-			tenant);
+		LOG_WRAP("You are not supposed to tune sched 1 of slice %ld\n",
+			slice);
 
 		blen = epf_single_ran_schedule_ns(
 			buf,
@@ -1012,7 +1012,7 @@ int wrap_ran_set_param(
 	uint32_t            mod,
 	uint32_t            id,
 	uint8_t             type,
-	uint64_t            tenant,
+	uint64_t            slice,
 	ep_ran_sparam_det * param)
 {
 	char buf[MEDIUM_BUF];
@@ -1049,9 +1049,9 @@ struct em_agent_ops sim_ops = {
 	.ran.user_request        = wrap_ran_user,
 	.ran.user_add            = wrap_ran_add_user,
 	.ran.user_rem            = wrap_ran_rem_user,
-	.ran.tenant_request      = wrap_ran_ten,
-	.ran.tenant_add          = wrap_ran_add_ten,
-	.ran.tenant_rem          = wrap_ran_rem_ten,
+	.ran.slice_request      = wrap_ran_ten,
+	.ran.slice_add          = wrap_ran_add_ten,
+	.ran.slice_rem          = wrap_ran_rem_ten,
 	.ran.sched_get_parameter = wrap_ran_get_param,
 	.ran.sched_set_parameter = wrap_ran_set_param,
 };

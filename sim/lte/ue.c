@@ -134,7 +134,7 @@ int ue_add(u16 pci, u32 earfcn, u16 rnti, u32 plmnid, u64 imsi, int rep)
 
 	if(sim_mac.ran) {
 		/* Add to the default user */
-		ran_add_user(sim_ues[f].rnti, RAN_TENANT_DEFAULT);
+		ran_add_user(sim_ues[f].rnti, RAN_SLICE_DEFAULT);
 	}
 
 	LOG_UE("UE %u added; Cell=%d, PLMN=%x, IMSI=%"PRIu64".\n",

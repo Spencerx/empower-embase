@@ -51,7 +51,7 @@ em_ran sim_ran = {0};
 u32 ran_user_rr_sched(
 	em_mac *        mac,
 	em_ran *        ran,
-	em_ran_tenant * tenant,
+	em_ran_slice * slice,
 	int             validPRGB[MAC_DL_PRBG_MAX])
 {
 	int i;
@@ -62,18 +62,18 @@ u32 ran_user_rr_sched(
 	int * last;
 
 	/* Initialization */
-	if (!tenant->sched_init) {
-		tenant->sched_priv = (int *) malloc(sizeof(int));
+	if (!slice->sched_init) {
+		slice->sched_priv = (int *) malloc(sizeof(int));
 
-		if (!tenant->sched_priv) {
+		if (!slice->sched_priv) {
 			return ERR_RAN_INIT_MEMORY;
 		}
 
-		tenant->sched_init           = 1;
-		*((int *)tenant->sched_priv) = 0;
+		slice->sched_init           = 1;
+		*((int *)slice->sched_priv) = 0;
 	}
 
-	last = (int *)tenant->sched_priv;
+	last = (int *)slice->sched_priv;
 	u    = (*last + 1) % RAN_USER_MAX;
 
 	/* Perform ONE cycle of every possible UE */
@@ -83,18 +83,18 @@ u32 ran_user_rr_sched(
 			goto next;
 		}
 
-		for (k = 0; k < RAN_TENANT_MAX; k++) {
-			if (ran->users[u].tenant[k] == tenant->id) {
+		for (k = 0; k < RAN_SLICE_MAX; k++) {
+			if (ran->users[u].slice[k] == slice->id) {
 				break;
 			}
 		}
 
 		/* The UE does not belong to this Tenant */
-		if (k == RAN_TENANT_MAX) {
+		if (k == RAN_SLICE_MAX) {
 			goto next;
 		}
 
-		/* We got the next valid UE belonging to a certain tenant */
+		/* We got the next valid UE belonging to a certain slice */
 		break;
 
 next:
@@ -144,7 +144,7 @@ next:
 u64 ran_tss_map[PHY_SUBFRAME_X_FRAME][32];
 
 /* Tenant static-assignment scheduler, ID 1 */
-u32 ran_tenant_static_sched(em_mac * mac, em_ran * ran)
+u32 ran_slice_static_sched(em_mac * mac, em_ran * ran)
 {
 	int d;
 	int i;
@@ -162,30 +162,30 @@ u32 ran_tenant_static_sched(em_mac * mac, em_ran * ran)
 	}
 
 	/* Loop over all the Tenants */
-	for (i = 0; i < RAN_TENANT_MAX; i++) {
+	for (i = 0; i < RAN_SLICE_MAX; i++) {
 		d = 0;
 
-		/* Skip invalid tenants */
-		if (ran->tenants[i].id == RAN_TENANT_INVALID_ID) {
+		/* Skip invalid slices */
+		if (ran->slices[i].id == RAN_SLICE_INVALID_ID) {
 			continue;
 		}
 
 		/* For this subframe, select the group which belong to this 
-		 * tenant.
+		 * slice.
 		 */
 		for (j = 0; j < MAC_DL_PRBG_MAX; j++) {
-			if (ran_tss_map[t][j] == ran->tenants[i].id) {
+			if (ran_tss_map[t][j] == ran->slices[i].id) {
 				d = 1;
 				validPRGB[j] = 1;
 			}
 		}
 
-		/* Detected some areas for this tenant? */
+		/* Detected some areas for this slice? */
 		if (d) {
 			ran_user_rr_sched(
 				mac,
 				ran,
-				&ran->tenants[i],
+				&ran->slices[i],
 				validPRGB);
 		}
 	}
@@ -196,7 +196,7 @@ u32 ran_tenant_static_sched(em_mac * mac, em_ran * ran)
  /* Perform RAN sharing simulation on the DL */
 u32 ran_DL_scheduler(em_mac * mac, em_ue * ues, u32 nof_ues)
 {
-	return ran_tenant_static_sched(mac, &sim_ran);
+	return ran_slice_static_sched(mac, &sim_ran);
 }
 
 /******************************************************************************
@@ -214,16 +214,16 @@ u32 ran_bootstrap() {
 		memset(&sim_ran.users[i], 0, sizeof(em_ran_user));
 	}
 
-	/* Reset all the Tenant informations; skip tenant 1 */
-	for (i = 1; i < RAN_TENANT_MAX; i++) {
-		sim_ran.tenants[i].id = RAN_TENANT_INVALID_ID;
-		/* Hard-coded RR scheduler for tenants */
-		sim_ran.tenants[i].sched_id   = 1;
-		sim_ran.tenants[i].sched_init = 0;
+	/* Reset all the Tenant informations; skip slice 1 */
+	for (i = 1; i < RAN_SLICE_MAX; i++) {
+		sim_ran.slices[i].id = RAN_SLICE_INVALID_ID;
+		/* Hard-coded RR scheduler for slices */
+		sim_ran.slices[i].sched_id   = 1;
+		sim_ran.slices[i].sched_init = 0;
 
-		if (sim_ran.tenants[i].sched_priv) {
-			free(sim_ran.tenants[i].sched_priv);
-			sim_ran.tenants[i].sched_priv = 0;
+		if (sim_ran.slices[i].sched_priv) {
+			free(sim_ran.slices[i].sched_priv);
+			sim_ran.slices[i].sched_priv = 0;
 		}
 	}
 
@@ -233,7 +233,7 @@ u32 ran_bootstrap() {
 		/* A valid UE detected */
 		if (sim_ues[i].rnti != UE_RNTI_INVALID) {
 			sim_ran.users[j].rnti      = sim_ues[i].rnti;
-			sim_ran.users[j].tenant[0] = RAN_TENANT_DEFAULT;
+			sim_ran.users[j].slice[0] = RAN_SLICE_DEFAULT;
 
 			LOG_RAN("Existing user %d added to Tenant 1\n", 
 				sim_ues[i].rnti);
@@ -248,58 +248,58 @@ u32 ran_bootstrap() {
 
 u32 ran_init()
 {
-	/* Hardcoded limitation of using the static scheduler for tenants */
+	/* Hardcoded limitation of using the static scheduler for slices */
 	sim_ran.sched_id = 1;
 
-	/* Initial UE connection default tenant */
-	sim_ran.tenants[0].id         = RAN_TENANT_DEFAULT;
-	sim_ran.tenants[0].sched_id   = 1;
-	sim_ran.tenants[0].sched_init = 0;
+	/* Initial UE connection default slice */
+	sim_ran.slices[0].id         = RAN_SLICE_DEFAULT;
+	sim_ran.slices[0].sched_id   = 1;
+	sim_ran.slices[0].sched_init = 0;
 
 	/* All the UEs belongs to the Default Tenant, to allow them completing
 	 * their connection procedures.
 	 */
 
-	ran_tss_map[0][0]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][1]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][2]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][3]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][4]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][5]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][6]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][7]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][8]  = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][9]  = RAN_TENANT_DEFAULT;
+	ran_tss_map[0][0]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][1]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][2]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][3]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][4]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][5]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][6]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][7]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][8]  = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][9]  = RAN_SLICE_DEFAULT;
 
-	ran_tss_map[0][10] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][11] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][12] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][13] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][14] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][15] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][16] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][17] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][18] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][19] = RAN_TENANT_DEFAULT;
+	ran_tss_map[0][10] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][11] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][12] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][13] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][14] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][15] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][16] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][17] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][18] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][19] = RAN_SLICE_DEFAULT;
 
-	ran_tss_map[0][20] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][21] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][22] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][23] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][24] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][25] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][26] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][27] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][28] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][29] = RAN_TENANT_DEFAULT;
+	ran_tss_map[0][20] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][21] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][22] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][23] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][24] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][25] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][26] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][27] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][28] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][29] = RAN_SLICE_DEFAULT;
 
-	ran_tss_map[0][30] = RAN_TENANT_DEFAULT;
-	ran_tss_map[0][31] = RAN_TENANT_DEFAULT;
+	ran_tss_map[0][30] = RAN_SLICE_DEFAULT;
+	ran_tss_map[0][31] = RAN_SLICE_DEFAULT;
 
 	return SUCCESS;
 }
 
-u32 ran_add_user(u16 user, u64 tenant) {
+u32 ran_add_user(u16 user, u64 slice) {
 	int i;
 	int j;
 	int f = -1;
@@ -327,39 +327,39 @@ u32 ran_add_user(u16 user, u64 tenant) {
 
 	sim_ran.users[i].rnti = user;
 
-	/* Check if the user is already part or such tenant or get a free slot
+	/* Check if the user is already part or such slice or get a free slot
 	 */
-	for (j = 0, f = -1; j < RAN_TENANT_MAX; j++) {
-		if (f < 0 && sim_ran.users[i].tenant[j] ==
-			RAN_TENANT_INVALID_ID) {
+	for (j = 0, f = -1; j < RAN_SLICE_MAX; j++) {
+		if (f < 0 && sim_ran.users[i].slice[j] ==
+			RAN_SLICE_INVALID_ID) {
 
 			f = j;
 		}
 
-		if (sim_ran.users[i].tenant[j] == tenant) {
+		if (sim_ran.users[i].slice[j] == slice) {
 			break;
 		}
 	}
 
-	if (j >= RAN_TENANT_MAX) {
+	if (j >= RAN_SLICE_MAX) {
 		if (f < 0) {
-			LOG_RAN("No tenant slots free for user %d\n", user);
+			LOG_RAN("No slice slots free for user %d\n", user);
 			return ERR_RAN_ADD_FULL;
 		}
 
 		j = f;
 	}
 	
-	sim_ran.users[i].tenant[j] = tenant;
+	sim_ran.users[i].slice[j] = slice;
 
 	LOG_RAN("RAN added new association, %d --> %ld\n",
 		sim_ran.users[i].rnti,
-		sim_ran.users[i].tenant[j]);
+		sim_ran.users[i].slice[j]);
 
 	return SUCCESS;
 }
 
-u32 ran_rem_user(u16 user, u64 tenant) {
+u32 ran_rem_user(u16 user, u64 slice) {
 	int i;
 	int j;
 	int f = -1;
@@ -381,50 +381,50 @@ u32 ran_rem_user(u16 user, u64 tenant) {
 		i = f;
 	}
 
-	/* No tenant specified; remove the entire user */
-	if (!tenant) {
+	/* No slice specified; remove the entire user */
+	if (!slice) {
 		memset(&sim_ran.users[i], 0, sizeof(em_ran_user));
 		LOG_RAN("RAN user %d removed\n", user);
 		return SUCCESS;
 	}
 
-	/* Do not remove the default tenant */
-	if (tenant == RAN_TENANT_DEFAULT) {
-		LOG_RAN("RAN user association with default tenant unchanged\n");
+	/* Do not remove the default slice */
+	if (slice == RAN_SLICE_DEFAULT) {
+		LOG_RAN("RAN user association with default slice unchanged\n");
 		return SUCCESS;
 	}
 
-	/* Find and remove the exact tenant association */
-	for (j = 0; j < RAN_TENANT_MAX; j++) {
-		if (sim_ran.users[i].tenant[j] == tenant) {
-			sim_ran.users[i].tenant[j] = RAN_TENANT_INVALID_ID;
+	/* Find and remove the exact slice association */
+	for (j = 0; j < RAN_SLICE_MAX; j++) {
+		if (sim_ran.users[i].slice[j] == slice) {
+			sim_ran.users[i].slice[j] = RAN_SLICE_INVALID_ID;
 			break;
 		}
 	}
 
-	LOG_RAN("RAN user %d association to tenant %ld removed\n", 
-		user, tenant);
+	LOG_RAN("RAN user %d association to slice %ld removed\n", 
+		user, slice);
 
 	return SUCCESS;
 }
 
-u32 ran_add_tenant(u64 tenant, u32 sched)
+u32 ran_add_slice(u64 slice, u32 sched)
 {
 	int i;
 	int f = -1;
 
 	/* Check if the user exists of if there are any free slots */
-	for (i = 0; i < RAN_TENANT_MAX; i++) {
-		if (f < 0 && sim_ran.tenants[i].id == RAN_TENANT_INVALID_ID) {
+	for (i = 0; i < RAN_SLICE_MAX; i++) {
+		if (f < 0 && sim_ran.slices[i].id == RAN_SLICE_INVALID_ID) {
 			f = i;
 		}
 
-		if (sim_ran.tenants[i].id == tenant) {
+		if (sim_ran.slices[i].id == slice) {
 			break;
 		}
 	}
 
-	if (i >= RAN_TENANT_MAX) {
+	if (i >= RAN_SLICE_MAX) {
 		if (f < 0) {
 			LOG_RAN("No more free RAN Tenant slots\n");
 			return ERR_RAN_ADD_FULL;
@@ -439,52 +439,52 @@ u32 ran_add_tenant(u64 tenant, u32 sched)
 		return ERR_RAN_ADD_INVALID;
 	}
 
-	sim_ran.tenants[i].id         = tenant;
-	sim_ran.tenants[i].sched_id   = 1;
-	sim_ran.tenants[i].sched_init = 0;
+	sim_ran.slices[i].id         = slice;
+	sim_ran.slices[i].sched_id   = 1;
+	sim_ran.slices[i].sched_init = 0;
 
-	if (sim_ran.tenants[i].sched_priv) {
-		free(sim_ran.tenants[i].sched_priv);
-		sim_ran.tenants[i].sched_priv = 0;
+	if (sim_ran.slices[i].sched_priv) {
+		free(sim_ran.slices[i].sched_priv);
+		sim_ran.slices[i].sched_priv = 0;
 	}
 
 	LOG_RAN("New RAN Tenant %ld inserted with scheduler %d\n",
-		tenant, sched);
+		slice, sched);
 
 	return SUCCESS;
 }
 
-u32 ran_rem_tenant(u64 tenant)
+u32 ran_rem_slice(u64 slice)
 {
 	int i;
 
 	/* Check if the user exists of if there are any free slots */
-	for (i = 0; i < RAN_TENANT_MAX; i++) {
-		if (sim_ran.tenants[i].id == tenant) {
+	for (i = 0; i < RAN_SLICE_MAX; i++) {
+		if (sim_ran.slices[i].id == slice) {
 			break;
 		}
 	}
 
-	if (i >= RAN_TENANT_MAX) {
-		LOG_RAN("RAN Tenant %ld not found\n", tenant);
+	if (i >= RAN_SLICE_MAX) {
+		LOG_RAN("RAN Tenant %ld not found\n", slice);
 		return ERR_RAN_REM_INVALID;
 	}
 
-	sim_ran.tenants[i].id         = RAN_TENANT_INVALID_ID;
-	sim_ran.tenants[i].sched_id   = 0;
-	sim_ran.tenants[i].sched_init = 0;
+	sim_ran.slices[i].id         = RAN_SLICE_INVALID_ID;
+	sim_ran.slices[i].sched_id   = 0;
+	sim_ran.slices[i].sched_init = 0;
 
-	if (sim_ran.tenants[i].sched_priv) {
-		free(sim_ran.tenants[i].sched_priv);
-		sim_ran.tenants[i].sched_priv = 0;
+	if (sim_ran.slices[i].sched_priv) {
+		free(sim_ran.slices[i].sched_priv);
+		sim_ran.slices[i].sched_priv = 0;
 	}
 
-	LOG_RAN("RAN Tenant %ld removed\n", tenant);
+	LOG_RAN("RAN Tenant %ld removed\n", slice);
 
 	return SUCCESS;
 }
 
-u32 ran_format_tenant_map(char * buf, int len)
+u32 ran_format_slice_map(char * buf, int len)
 {
 	int i;
 	int j ;
@@ -497,7 +497,7 @@ u32 ran_format_tenant_map(char * buf, int len)
 			 */
 			if (s > len) {
 				LOG_RAN("!!!!! Overflow while formatting the "
-					"tenant map\n");
+					"slice map\n");
 
 				return len;
 			}
