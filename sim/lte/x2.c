@@ -218,7 +218,7 @@ int x2_init()
 	return SUCCESS;
 }
 
-int x2_hand_over(u16 rnti, u32 enb)
+int x2_hand_over(u16 rnti, u64 enb)
 {
 	int i;
 	int u = -1;
@@ -245,14 +245,14 @@ int x2_hand_over(u16 rnti, u32 enb)
 	}
 
 	for(i = 0; i < NEIGH_MAX; i++) {
-		if(sim_neighs[i].id == enb) {
+		if(sim_neighs[i].id == (u32)enb) {
 			e = i;
 			break;
 		}
 	}
 
 	if(e < 0) {
-		LOG_X2("HO: Neighbor cell not found, enb=%u\n", enb);
+		LOG_X2("HO: Neighbor cell not found, enb=%u\n", (u32)enb);
 		return ERR_X2_HO_CELL;
 	}
 
@@ -274,7 +274,7 @@ int x2_hand_over(u16 rnti, u32 enb)
 	ho->t_rsrp   = htons((s16)(sim_neighs[e].rs[u].rsrp));
 	ho->t_rsrq   = htons((s16)(sim_neighs[e].rs[u].rsrq));
 
-	LOG_X2("Handing over UE %x to eNB %d\n", rnti, enb);
+	LOG_X2("Handing over UE %x to eNB %d\n", rnti, (u32)enb);
 
 	x2_send(
 		buf,

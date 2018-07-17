@@ -88,7 +88,7 @@ int x2_init(void);
  *
  * Return 0 on success, otherwise a negative error code.
  */
-int x2_hand_over(u16 rnti, u32 enb);
+int x2_hand_over(u16 rnti, u64 enb);
 
 /******************************************************************************
  * X2 simulation logic:                                                       *

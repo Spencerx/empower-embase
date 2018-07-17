@@ -197,7 +197,7 @@ int wrap_handover(
 	uint32_t mod,
 	uint16_t source_cell,
 	uint16_t rnti,
-	uint32_t target_enb,
+	uint64_t target_enb,
 	uint16_t target_cell,
 	uint8_t  cause)
 {
