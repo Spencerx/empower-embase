@@ -261,7 +261,7 @@ int x2_hand_over(u16 rnti, u64 enb)
 		return ERR_X2_HO_UE;
 	}
 
-	hdr->base_id = htonl(sim_ID);
+	hdr->base_id = htonl((u32)sim_ID);
 	hdr->cell_id = htons(sim_phy.cells[0].pci);
 	hdr->type    = X2_MSG_HANDOVER;
 
@@ -349,7 +349,7 @@ u32 x2_compute()
 	for(i = 0; i < NEIGH_MAX; i++) {
 		/* Only if its a valid one. */
 		if(sim_neighs[i].id) {
-			j.base_id = htonl(sim_ID);
+			j.base_id = htonl((u32)sim_ID);
 			j.cell_id = htons(sim_phy.cells[0].pci);
 			j.type = X2_MSG_ALIVE;
 
