@@ -145,7 +145,9 @@ int x2_handover(struct x2_head * head, char * buf, unsigned int size)
 			sim_neighs[j].rs[i].rsrp = PHY_RSRP_LOWER;
 		}
 	}
-
+#if 1
+	sim_switch = !sim_switch;
+#endif
 	LOG_X2("UE with IMSI=%"PRIu64" handed over to us by eNB %d.\n",
 		be64toh(ho->imsi),
 		ntohl(head->base_id));

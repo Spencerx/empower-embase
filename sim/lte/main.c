@@ -200,7 +200,10 @@ void signal_handler(int sig)
 {
 	ctrl_c = 1;
 }
-
+#if 1
+int sim_switch = 1;
+int sim_peak = 5;
+#endif
 int main(int argc, char ** argv) {
 	char logp[256] = {0};
 	//util_mask_all_signals();
@@ -253,6 +256,65 @@ int main(int argc, char ** argv) {
 
 	/* Wait for the interface to come down... */
 	do {
+#if 1
+		if(sim_ues[0].rnti == RAN_USER_INVALID_ID) {
+			sim_peak = 5;
+			goto skip;
+		}
+
+		/* sim_switch != 0
+		 * Carrier quality increses and neighbor cell quality decreses.
+		 */
+		if(sim_switch) {
+			sim_ues[0].meas[0].rs.rsrq = sim_ues[0].meas[0].rs.rsrq - 1.0f;
+
+			if(sim_ues[0].meas[0].rs.rsrq < PHY_RSRQ_LOWER) {
+				sim_ues[0].meas[0].rs.rsrq = PHY_RSRQ_LOWER;
+				sim_peak--;
+
+				if(sim_peak <= 0) {
+					sim_peak   = 5;
+					sim_switch = !sim_switch;
+				}
+			}
+
+			/* Neighbour quality increase */
+			sim_neighs[0].rs[0].rsrq = sim_neighs[0].rs[0].rsrq + 1.0f;
+
+			if(sim_neighs[0].rs[0].rsrq > PHY_RSRQ_HIGHER) {
+				sim_neighs[0].rs[0].rsrq = PHY_RSRQ_HIGHER;
+			}
+
+			sim_ues[0].meas[0].dirty = 1;
+		} 
+		/* sim_switch == 0
+		 * Carrier quality decreses and neighbor cell quality increses.
+		 */		
+		else {
+			/* Carrier quality increase */
+			sim_ues[0].meas[0].rs.rsrq = sim_ues[0].meas[0].rs.rsrq + 1.0f;
+
+			if(sim_ues[0].meas[0].rs.rsrq > PHY_RSRQ_HIGHER) {
+				sim_ues[0].meas[0].rs.rsrq = PHY_RSRQ_HIGHER;
+				sim_peak--;
+
+				if(sim_peak <= 0) {
+					sim_peak   = 5;
+					sim_switch = !sim_switch;
+				}
+			}
+
+			/* Neighbour quality increase */
+			sim_neighs[0].rs[0].rsrq = sim_neighs[0].rs[0].rsrq - 1.0f;
+
+			if(sim_neighs[0].rs[0].rsrq < PHY_RSRQ_LOWER) {
+				sim_neighs[0].rs[0].rsrq = PHY_RSRQ_LOWER;
+			}
+
+			sim_ues[0].meas[0].dirty = 1;
+		}
+skip:
+#endif
 		/*
 		 * Perform UE simulation.
 		 * NOTE: this can generate network feedback.

@@ -376,7 +376,7 @@ int wrap_mac_report(uint32_t mod, int32_t interval, int trig_id)
 
 	return 0;
 }
-
+#if 0
 /* Handles a RAN setup request */
 int wrap_ran_setup(uint32_t mod)
 {
@@ -1033,7 +1033,7 @@ int wrap_ran_set_param(
 
 	return em_send(sim_ID, buf, blen);
 }
-
+#endif
 /* Operations offered by this technology abstraction module. */
 struct em_agent_ops sim_ops = {
 	.init                    = wrap_init,
@@ -1045,6 +1045,7 @@ struct em_agent_ops sim_ops = {
 	.ue_report               = wrap_ue_report,
 	.ue_measure              = wrap_ue_measure,
 	.mac_report              = wrap_mac_report,
+#if 0
 	.ran.setup_request       = wrap_ran_setup,
 	.ran.user_request        = wrap_ran_user,
 	.ran.user_add            = wrap_ran_add_user,
@@ -1054,4 +1055,5 @@ struct em_agent_ops sim_ops = {
 	.ran.slice_rem          = wrap_ran_rem_ten,
 	.ran.sched_get_parameter = wrap_ran_get_param,
 	.ran.sched_set_parameter = wrap_ran_set_param,
+#endif
 };

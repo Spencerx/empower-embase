@@ -421,7 +421,7 @@ int iface_ue_draw()
 		}
 
 		move(9 + s, 8);
-		sprintf(tmp, "%d", sim_ues[i].rnti);
+		sprintf(tmp, "%05d", sim_ues[i].rnti);
 		printw("%-10s", tmp);
 
 		sprintf(tmp, "%x", sim_ues[i].plmn);

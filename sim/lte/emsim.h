@@ -47,7 +47,9 @@ extern u32    sim_loop_int;
 extern char   sim_ctrl_addr[64];
 /* Port used to connect to the controller */
 extern u16    sim_ctrl_port;
-
+#if 1
+extern int sim_switch;
+#endif
 /******************************************************************************
  * Globals utilities:                                                         *
  ******************************************************************************/

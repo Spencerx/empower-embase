@@ -162,6 +162,13 @@ int ue_rem(u16 rnti, int rep)
 
 			/* Reset RRC measurements for that UE */
 			for(j = 0; j < UE_RRCM_MAX; j++) {
+				if(sim_ues[i].meas[j].tri_id) {
+					/* Remove the eventual trigger */
+					em_del_trigger(
+						sim_ID,
+						 sim_ues[i].meas[j].tri_id);
+				}
+
 				sim_ues[i].meas[j].id     = 0;
 				sim_ues[i].meas[j].tri_id = 0;
 				sim_ues[i].meas[j].mod_id = 0;
